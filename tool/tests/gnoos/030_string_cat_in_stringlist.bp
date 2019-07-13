@@ -1,0 +1,2 @@
+variable_a = "data995"
+variable_b = ["data996", "data997", "data998" + variable_a]

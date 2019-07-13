@@ -1,0 +1,6 @@
+section_outer {
+	name: "data1",
+	section_inner: {
+		name: "data2"
+	}
+}

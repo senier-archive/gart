@@ -1,0 +1,134 @@
+#!/usr/bin/env python3
+# pylint: disable=missing-docstring
+
+import re
+import imp
+import argparse
+
+from pathlib import Path
+from math import sqrt
+
+import pygraphviz as pgv
+
+# load gnoos as library (we can't use import at it has no .py ending)
+SOONG = imp.load_source('.', 'gnoos')
+
+class SoongGraph(SOONG.Soong):
+
+    def add_edges(self, section):
+
+        (dummy, secdata) = section
+
+        if self.__target and 'target' in secdata and self.__target in secdata['target']:
+            SOONG.merge_section(secdata['target'][self.__target], secdata)
+
+        if self.__arch and 'arch' in secdata and self.__arch in secdata['arch']:
+            SOONG.merge_section(secdata['arch'][self.__arch], secdata)
+
+        if self.__target and self.__arch and 'target' in secdata:
+            target_arch = self.__target + '_' + self.__arch
+            if target_arch in secdata['target']:
+                SOONG.merge_section(secdata['target'][target_arch], secdata)
+
+        if 'shared_libs' in secdata:
+            for lib in secdata['shared_libs']:
+                self.__graph.add_edge(secdata['name'], lib, color='#505050')
+                self.add_edges(self.query('/*[@name=' + lib + ']'))
+
+        if 'static_libs' in secdata:
+            for lib in secdata['static_libs']:
+                self.__graph.add_edge(secdata['name'], lib, color='#f0a848')
+                self.add_edges(self.query('/*[@name=' + lib + ']'))
+
+    def __init__(self, rootdir, dirs, querytext, reduction=False, target=None, arch=None):
+
+        SOONG.Soong.__init__(self, rootdir,
+                             ignore_vars=['subdirs', 'build', 'common_CFLAGS', 'common_cflags'])
+
+        self.__target = target
+        self.__arch = arch
+
+        for directory in dirs:
+            current_dir = Path(rootdir) / Path(directory)
+            try:
+                for current_file in current_dir.glob('**/*.bp'):
+                    # Filter out templates
+                    if not re.match('.*_template\.bp$', str(current_file)):
+                        self.parse(str(current_file.relative_to(rootdir)))
+            except OSError:
+                pass
+
+        self.__graph = pgv.AGraph(directed=True, splines='ortho', nodesep='1.5', ranksep='5.5')
+        self.__graph.node_attr['fontname'] = 'Arimo'
+        self.__graph.node_attr['shape'] = 'rectangle'
+        self.__graph.node_attr['style'] = 'rounded, filled'
+        self.__graph.node_attr['fontcolor'] = 'white'
+        self.__graph.node_attr['color'] = '#505050'
+        self.__graph.node_attr['penwidth'] = '5.0'
+        self.__graph.graph_attr['fontname'] = 'Arimo'
+        self.__graph.graph_attr['label'] = \
+            'QUERY: ' + querytext + ' / ARCH: ' + arch + ' / TARGET: ' + target
+
+        self.__graph.edge_attr['penwidth'] = '5.0'
+
+        # Resolve all defaults
+        self.resolve_defaults()
+
+        self.add_edges(self.query(querytext))
+
+        for node in self.__graph.nodes():
+            in_degree = self.__graph.in_degree(node)
+            out_degree = self.__graph.out_degree(node)
+            if out_degree > 10:
+                fg_color = '#009641'
+            else:
+                fg_color = '#505050'
+            self.__graph.add_node(node, height=sqrt(in_degree + 1),
+                                  width=1.3 * sqrt(in_degree + 1), fillcolor=fg_color)
+
+        if reduction:
+            self.__graph = self.__graph.tred()
+
+    def draw(self, filename):
+
+        print("Drawing graph with " + str(self.__graph.order()) + " nodes and " + \
+              str(self.__graph.number_of_edges()) + " edges")
+        self.__graph.draw(filename, format='pdf', prog='dot')
+
+    def hist(self):
+
+        hist = {}
+        for node in self.__graph.nodes():
+            degree = self.__graph.in_degree(node) + 1
+            if not degree in hist:
+                hist[degree] = 0
+            hist[degree] += 1
+
+        for num_nodes in sorted(hist):
+            print("%2.0d: %3.0d" % (num_nodes, hist[num_nodes]))
+
+
+    def dump_dot(self, filename):
+        with open(filename, 'w') as file_handle:
+            file_handle.write(str(self.__graph))
+
+if __name__ == "__main__":
+
+    PARSER = argparse.ArgumentParser(description='Build dependency graph from multiple soong files')
+    PARSER.add_argument('-o', '--output', help='Output file', action='store', required=True)
+    PARSER.add_argument('-r', '--rootdir', help='Root directory', action='store', required=True)
+    PARSER.add_argument('-d', '--dir', help='Directory to scan', action='append', required=True)
+    PARSER.add_argument('-t', '--target', help='Consider subsection for target')
+    PARSER.add_argument('-a', '--arch', help='Consider subsection for arch')
+    PARSER.add_argument('-q', '--query', help='Query to build graph from', required=True)
+    PARSER.add_argument('-R', '--reduction', help='Run transitive reduction', action='store_true')
+    PARSER.add_argument('-H', '--histogram', help='Print in-degree histogram', action='store_true')
+    PARSER.add_argument('-D', '--dump', help='Dump DOT file', action='store')
+    ARGS = PARSER.parse_args()
+
+    GRAPH = SoongGraph(ARGS.rootdir, ARGS.dir, ARGS.query, ARGS.reduction, ARGS.target, ARGS.arch)
+    if ARGS.histogram:
+        GRAPH.hist()
+    if ARGS.dump:
+        GRAPH.dump_dot(ARGS.dump)
+    GRAPH.draw(ARGS.output)

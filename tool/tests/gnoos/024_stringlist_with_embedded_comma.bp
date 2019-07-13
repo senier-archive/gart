@@ -1,0 +1,2 @@
+// This should be parsed as a string list with one element
+variable = ["data12,data13"]

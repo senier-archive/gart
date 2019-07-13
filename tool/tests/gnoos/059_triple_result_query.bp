@@ -1,0 +1,11 @@
+section_1 {
+	elem1: "data1"
+}
+
+section_1 {
+	elem2: "data2"
+}
+
+section_1 {
+	elem3: "data3"
+}

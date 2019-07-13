@@ -1,0 +1,35 @@
+#!/bin/bash
+
+if [ $# -ne 1 ];
+then
+	echo "Usage: $0 <android_source_dir>"
+	exit 1
+fi
+
+ANDROID_SOURCE=$1
+
+if [ ! -d "${ANDROID_SOURCE}" ];
+then
+	echo "No directory: ${ANDROID_SOURCE}"
+fi
+
+# Remove Android directory to catch removed files
+rm -rf android
+
+no_files=0
+
+# Find all Soong build files
+for f in $(find ${ANDROID_SOURCE} -type f -name '*.bp');
+do
+	file=${f##${ANDROID_SOURCE}}
+	dir=$(dirname ${file})
+	filename=$(basename ${file})
+
+	echo -n "."
+	mkdir -p android/${dir}
+	cp ${ANDROID_SOURCE}/${dir}/${filename} android/${dir}/${filename}
+	no_files=$[${no_files}+1]
+done
+
+echo
+echo "Done. ${no_files} processed."

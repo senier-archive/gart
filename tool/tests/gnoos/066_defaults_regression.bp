@@ -1,0 +1,22 @@
+cc_defaults {
+    name: "libcutils_test_default",
+    srcs: ["sockets_test.cpp"],
+
+    cflags: [
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+    ],
+}
+
+test_libraries = [
+    "libcutils",
+    "liblog",
+    "libbase",
+]
+
+cc_test {
+    name: "libcutils_test",
+    defaults: ["libcutils_test_default"],
+    shared_libs: test_libraries,
+}

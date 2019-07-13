@@ -1,0 +1,7 @@
+section_1 {
+	name: "base",
+	data1: "elem1",
+	defaults: ["defaults"]
+}
+
+

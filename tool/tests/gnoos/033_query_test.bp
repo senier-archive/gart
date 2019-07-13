@@ -1,0 +1,14 @@
+section {
+	name: "first",
+	data1: "elem1"
+}
+
+section {
+	name: "second",
+	data2: "elem2"
+}
+
+section_2 {
+	name: "third",
+	data3: "elem3"
+}

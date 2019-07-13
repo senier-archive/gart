@@ -1,0 +1,15 @@
+section_1 {
+	name: "defaults_1",
+	elem1: "data1"
+}
+
+section_2 {
+	name: "defaults_2",
+	elem2: "data2"
+}
+
+section_3 {
+	name: "third",
+	defaults: ["defaults_1", "defaults_2"],
+	elem3: "data3"
+}

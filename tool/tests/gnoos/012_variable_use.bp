@@ -1,0 +1,5 @@
+variable_3 = ["data3", "data4"]
+
+section_10 {
+	data5: variable_3
+}

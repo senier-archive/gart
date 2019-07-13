@@ -1,0 +1,16 @@
+section_1 {
+	name: "sec_defaults",
+	elem1: ["data1", "data2"],
+	subsect1: {
+		elem2: true
+	},
+	elem3: "data3"
+}
+
+section_2 {
+	name: "sec_name",
+	defaults: ["sec_defaults"],
+	elem1: ["data4"],
+	elem4: ["data5", "data6"]
+}
+

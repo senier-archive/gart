@@ -1,0 +1,4 @@
+section_1 {
+	elem1: ["data1", "data2", "data3"],
+	elem2: true
+}

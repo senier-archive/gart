@@ -1,0 +1,7 @@
+section_1 {
+	elem1: ["data1", "data2"]
+}
+
+section_2 {
+	elem1: "data3"
+}

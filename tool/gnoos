@@ -1,0 +1,1055 @@
+#!/usr/bin/env python3
+# pylint: disable=missing-docstring
+# pylint: disable=too-few-public-methods
+
+import os
+import sys
+import copy
+import argparse
+import unittest
+
+from pyparsing import \
+    Word, Suppress, Literal, alphanums, Optional, delimitedList, Group, OneOrMore, StringEnd, \
+    QuotedString, Forward, ZeroOrMore, cppStyleComment, cStyleComment, ParseException
+
+class MissingVariable(Exception):
+    pass
+
+class DuplicateVariable(Exception):
+    pass
+
+class DuplicateEntry(Exception):
+    pass
+
+class IncompatibleConcatenation(Exception):
+    pass
+
+class NotFound(Exception):
+    pass
+
+class InvalidQuery(Exception):
+    pass
+
+class AmbiguousQuery(Exception):
+    pass
+
+class MergeIncompatibleSections(Exception):
+    pass
+
+class DefaultsNoList(Exception):
+    pass
+
+class NameNoString(Exception):
+    pass
+
+class ParseError(Exception):
+    pass
+
+class AnyClass:
+    def __repr__(self):
+        return "*"
+
+ANY = AnyClass()
+
+class Wrap:
+
+    def __init__(self, data):
+        self.__data = data
+
+    def unwrap(self):
+        return self.__data
+
+def merge_section(source, target):
+
+    if not target:
+        target.update(source)
+        return
+
+    for elem in source:
+
+        # Simple case: source element does not exist in target dict
+        if not elem in target:
+            target[elem] = copy.deepcopy(source[elem])
+        else:
+            target_elem_type = type(target[elem])
+            if target_elem_type != type(source[elem]):
+                raise MergeIncompatibleSections(str(elem) + ": " + str(target_elem_type))
+
+            if target_elem_type == dict:
+                merge_section(source[elem], target[elem])
+            elif target_elem_type == list:
+                target[elem][:0] = copy.deepcopy(source[elem])
+            elif target_elem_type == str or target_elem_type == bool:
+                pass
+            else:
+                raise Exception("Unhandled element type: %s", str(type(target[elem])))
+
+def attribute_action(tokens):
+    return (tokens[0], tokens[1])
+
+def subquery_action(tokens):
+    attribute = tokens[1] if len(tokens) > 1 else None
+    return (tokens[0], attribute)
+
+def wildcard_action():
+    return ANY
+
+#
+# Soong query grammar
+#
+class SoongQuery:
+
+    def __init__(self, querytext):
+
+        qname = Word(alphanums + "_-@.+")
+
+        attribute = Suppress(Literal('[') + Literal('@')) + qname + \
+                    Suppress(Literal('=')) + qname + Suppress(Literal(']'))
+        attribute.setParseAction(attribute_action)
+
+        wildcard = Literal('*')
+        wildcard.setParseAction(wildcard_action)
+
+        subquery = Suppress(Literal('/')) + (wildcard|qname) + Optional(attribute)
+        subquery.setParseAction(subquery_action)
+
+        query = delimitedList(Group(OneOrMore(subquery)), delim='|') + StringEnd()
+        self.__query = query.parseString(querytext)
+
+    def query(self):
+        return self.__query
+
+def stringlist_action(tokens):
+    return [tokens[:-1]]
+
+def element_action(tokens):
+    result = copy.deepcopy(tokens[0])
+    for token in tokens[1:]:
+        if not isinstance(token, type(tokens[0])):
+            raise IncompatibleConcatenation
+        if isinstance(token, list):
+            result.extend(token)
+        else:
+            result += token
+    return Wrap(result)
+
+def stringcat_action(tokens):
+    result = tokens[0]
+    for token in tokens[1:]:
+        result += token
+    return result
+
+def dictelem_action(tokens):
+    return (tokens[0], tokens[1].unwrap())
+
+def section_action(tokens):
+    result = {}
+    for token in tokens:
+        if token[0] in result:
+            raise DuplicateEntry(token[0])
+        result[token[0]] = token[1]
+    return Wrap(result)
+
+def namedsection_action(tokens):
+    return (tokens[0], tokens[1].unwrap())
+
+#
+# Soong parser
+#
+class Soong:
+
+    def __init__(self, basedir='.', ignore_vars=None):
+        # pylint: disable=too-many-locals
+        self.__data = {'variables': {}, 'sections': []}
+        self.__basedir = basedir
+        self.__ignore_vars = ignore_vars
+
+        name = Word(alphanums + "_")
+        comma = Literal(',')
+        true = Literal('true').setParseAction(lambda v: Wrap(True))
+        false = Literal('false').setParseAction(lambda v: Wrap(False))
+
+        # Variable reference
+        varref = Word(alphanums + "_")
+        varref.setParseAction(self.varref_action)
+
+        # Boolean literal true/false
+        boolean = true | false
+
+        # String
+        string = QuotedString('"', escChar='\\').setParseAction(lambda s, l, t: t[0])
+
+        # String concatenation
+        stringcat = delimitedList(string|varref, delim='+')
+        stringcat.setParseAction(stringcat_action)
+
+        # List of strings
+        stringlist = Suppress(Literal("[")) + \
+            Optional(delimitedList(stringcat)) + \
+            Suppress(Optional(comma)) + Literal("]")
+        stringlist.setParseAction(stringlist_action)
+
+        # Concatenation of strings, strings lists and variables
+        element = delimitedList(string|stringlist|varref, delim='+')
+        element.setParseAction(element_action)
+
+        # Data
+        data = boolean | element
+        data.setParseAction(lambda s, l, t: t)
+
+        # Element inside a section
+        section = Forward()
+        dictelem = name + Suppress(Literal(':')|Literal('=')) + (data|section)
+        dictelem.setParseAction(dictelem_action)
+
+        # Section (unnamed)
+        # pylint: disable=expression-not-assigned
+        section << Suppress(Literal("{")) + \
+            Optional(delimitedList(dictelem)) + \
+            Suppress(Optional(comma) + Literal("}"))
+        section.setParseAction(section_action)
+        # pylint: enable=expression-not-assigned
+
+        # Named section
+        namedsection = name + section
+        namedsection.setParseAction(namedsection_action)
+
+        # Variable
+        variable = name + Suppress(Literal("=")) + (data|section)
+        variable.setParseAction(self.variable_action)
+
+        # Extension
+        extension = name + Suppress(Literal("+=")) + data
+        extension.setParseAction(self.extension_action)
+
+        # Soong file
+        self._grammar = ZeroOrMore(namedsection
+                                   | Suppress(variable)
+                                   | Suppress(extension)) + StringEnd()
+        self._grammar.setParseAction(self.soong_action)
+
+        # C and C++ style comments
+        self._grammar.ignore(cppStyleComment | cStyleComment)
+
+    def variable_action(self, tokens):
+        var = tokens[0]
+        if var in self.variables() and not (self.__ignore_vars and var in self.__ignore_vars):
+            raise DuplicateVariable(var)
+        data = tokens[1].unwrap()
+        self.variables()[var] = data
+
+    def varref_action(self, tokens):
+        varname = tokens[0]
+        if not varname in self.variables():
+            raise MissingVariable(varname)
+        return [self.variables()[varname]]
+
+    def extension_action(self, tokens):
+        varname = tokens[0]
+        variables = self.variables()
+        value = variables[varname]
+        variables[varname] = value + tokens[1].unwrap()
+
+    def soong_action(self, tokens):
+        self.__data['sections'].extend(tokens)
+
+    def parse(self, infile):
+        filepath = self.__basedir + "/" + infile
+        with open(filepath, 'r') as filehandle:
+            try:
+                self._grammar.parseFile(filehandle)
+            except ParseException as e:
+                raise ParseError("Parse error in '" + infile + "' [" + str(e) + "]")
+
+    def data(self):
+        return self.__data['sections']
+
+    def variables(self):
+        return self.__data['variables']
+
+    def query(self, querytext):
+
+        try:
+            soong_query = SoongQuery(querytext)
+        except ParseException:
+            raise InvalidQuery(querytext)
+
+        name = None
+        result = {}
+
+        for query in soong_query.query():
+            sections = self.data()
+            for (queryname, attr) in query:
+                subresult = {}
+                for tmp in sections:
+                    (secname, secdata) = tmp if isinstance(tmp, tuple) else (tmp, sections[tmp])
+
+                    if (queryname == ANY or queryname == secname) and \
+                       (attr is None or attr[0] in secdata and secdata[attr[0]] == attr[1]):
+                        name = secname
+                        merge_section(secdata, subresult)
+
+                if not subresult:
+                    raise NotFound("query=" + str(soong_query.query()) + \
+                                   " // (" + str(queryname) + ")")
+
+                sections = subresult
+
+            merge_section(result, sections)
+            result = sections
+
+        if not result:
+            raise NotFound(querytext)
+
+        if 'name' in sections and not isinstance(sections['name'], str):
+            raise NameNoString
+
+        return (name, result)
+
+    def resolve_default(self, secdata):
+
+        if not 'defaults' in secdata:
+            return
+
+        if not isinstance(secdata['defaults'], list):
+            raise DefaultsNoList('Defaults not of list type')
+
+        for default in secdata['defaults']:
+            defaultsec = self.query('/*[@name=' + default + ']')
+            self.resolve_default(defaultsec[1])
+            merge_section(defaultsec[1], secdata)
+
+        del secdata['defaults']
+
+    def resolve_defaults(self):
+
+        for sec in self.data():
+            self.resolve_default(sec[1])
+
+def make_vars(data, prefix=''):
+
+    result = ""
+
+    secdata = data[1]
+    for elem in sorted(secdata):
+        secdata_type = type(secdata[elem])
+        if secdata_type  is str:
+            data = secdata[elem].translate(str.maketrans({"#": r"\#"}))
+            result += '%s%s = %s\n' % (prefix, elem.upper(), data)
+        elif secdata_type is list:
+            result += '%s%s =' % (prefix, elem.upper())
+            for raw_elem in sorted(secdata[elem]):
+                elem = raw_elem.translate(str.maketrans({"#": r"\#"}))
+                result += ' %s' % elem
+            result += '\n'
+        elif secdata_type is bool:
+            result += '%s%s = %s\n' % (prefix, elem.upper(), str(secdata[elem]))
+        elif secdata_type is dict:
+            pass
+        else:
+            raise Exception("Cannot convert element type '" + str(secdata_type) + "'")
+
+    return result
+
+#
+# Soong parsers test cases
+#
+class TestSoong(unittest.TestCase):
+    # pylint: disable=too-many-public-methods
+
+    def setUp(self):
+        self.testdir = "tests/gnoos"
+
+    def fullpath(self, testfile):
+        return self.testdir + "/" + testfile + ".bp"
+
+    def parse(self, filename):
+        soong = Soong()
+        soong.parse(self.fullpath(filename))
+        return soong
+
+    def assert_data(self, filename, data):
+        soong = self.parse(filename)
+        self.assertEqual(soong.data(), data, self.fullpath(filename))
+
+    def assert_variables(self, filename, variables):
+        soong = self.parse(filename)
+        self.assertEqual(soong.variables(), variables, self.fullpath(filename))
+
+    def query(self, filename, querytext):
+        soong = self.parse(filename)
+        soong.resolve_defaults()
+        return soong.query(querytext)
+
+    def assert_query(self, filename, querytext, data):
+        query = self.query(filename, querytext)
+        self.assertEqual(query, data, self.fullpath(filename))
+
+    def assert_mk(self, filename, querytext, data, prefix=''):
+        query = self.query(filename, querytext)
+        self.assertEqual(make_vars(query, prefix), data, self.fullpath(filename))
+
+    def test_001(self):
+        """
+        Parsing an empty file must yield an empty list.
+        """
+        self.assert_data("001_empty_file", [])
+
+    def test_002(self):
+        """
+        Parsing a file with only a C++ style comment must yield an empty list.
+        """
+        self.assert_data("002_cpp_comment_only", [])
+
+    def test_003(self):
+        """
+        Parsing a file with only a C style comment must yield an empty list.
+        """
+        self.assert_data("003_c_comment_only", [])
+
+    def test_004(self):
+        """
+        Parsing a file with only C and C++ style comments must yield an empty list.
+        """
+        self.assert_data("004_mixed_comment_only", [])
+
+    def test_005(self):
+        """
+        An empty section must result in empty dict
+        """
+        self.assert_data("005_single_empty_section", [("section1", {})])
+
+    def test_006(self):
+        """
+        An single section mapping a name to a scalar string value must result in
+        a dict mapping that section name to dict. This dict must contain only that
+        element name which is mapped to the correct string value.
+        """
+        self.assert_data("006_single_simple_section", [('section2', {'foo': 'bar'})])
+
+    def test_007(self):
+        """
+        A section with multiple elements where the last element has a trailing
+        comma(without a further element) must be parsed correctly.
+        """
+        self.assert_data("007_trailing_comma", \
+            [('section3', {'element1': 'data1', 'element2': 'data2'})])
+
+    def test_008(self):
+        """
+        Two sections with simple data.
+        """
+        self.assert_data("008_multiple_simple_sections",
+                         [('section5', {'element1': 'data1', 'element2': 'data2'}),
+                          ('section6', {'element3': 'data3', 'element4': 'data4'})])
+
+    def test_009(self):
+        """
+        A section containing lists of strings
+        """
+        self.assert_data("009_section_with_lists",
+                         [('section8', {'element8':  ['data1', 'data2', 'data3'],
+                                        'element9':  ['data4', 'data5'],
+                                        'element10': ['data6']})])
+
+    def test_010(self):
+        """
+        File with one single variable assignment. Variables are stored in the
+        'variables' element of self._data
+        """
+        self.assert_variables("010_single_variable", {'some_variable': 'data10'})
+
+    def test_011(self):
+        """
+        File with one single variable assignment of a string list.
+        """
+        self.assert_variables("011_single_variable_list", \
+            {'variable_2': ['data1', 'data2']})
+
+    def test_012(self):
+        """
+        Use variable in a section. Eventually, the section must contain the variable value.
+        """
+        self.assert_data("012_variable_use", \
+            [('section_10', {'data5': ['data3', 'data4']})])
+
+    def test_013(self):
+        """
+        Use non-existing variable in a section. Must raise an exception.
+        """
+        with self.assertRaises(MissingVariable):
+            self.parse("013_missing_variable")
+
+    def test_014(self):
+        """
+        Concatenate string from two constants
+        """
+        self.assert_data("014_string_const_cat", \
+            [('section_11', {'data6': 'leftright'})])
+
+    def test_015(self):
+        """
+        Concatenate string from a constant and a variable.
+        """
+        self.assert_data("015_string_var_cat", \
+            [('section_12', \
+             {'data7': 'leftVARIABLE1', 'data8': 'VARIABLE2right'})])
+
+    def test_016(self):
+        """
+        Assign a string list to a variable and extend it by another list.
+        """
+        self.assert_variables("016_var_stringlist_ext", \
+            {'variable_12': ['data15', 'data16']})
+
+    def test_017(self):
+        """
+        Concatenate two strings
+        """
+        self.assert_variables("017_var_string_ext", \
+            {'variable_19': 'data20data21'})
+
+    def test_018(self):
+        """
+        Concatenate two string lists
+        """
+        self.assert_data("018_stringlist_const_cat", \
+            [('section_21', \
+             {'data7': ['data30', 'data32', 'data33', 'data34', 'data35']})])
+
+    def test_019(self):
+        """
+        Assign a string lists to a variable and concatenate it with a constant
+        string list
+        """
+        self.assert_data("019_stringlist_var_cat", \
+            [('section_21', \
+             {'data8': ['data30', 'data32', 'data33', 'data34', 'data35']})])
+
+    def test_020(self):
+        """
+        Assign two concatenated string lists to a variable
+        """
+        self.assert_data("020_stringlist_var_cat", \
+            [('section_22', \
+             {'data9': ['data50', 'data51', 'data52', 'data53', 'data54']})])
+
+    def test_021(self):
+        """
+        Assign boolean constants
+        """
+        self.assert_data("021_boolean_const", \
+            [('section_49', {'truevar': True, 'falsevar': False})])
+
+    def test_022(self):
+        """
+        Assign boolean variable
+        """
+        self.assert_data("022_boolean_var", \
+            [('section_123', {'boolean': True})])
+
+    def test_023(self):
+        """
+        Erroneously concatenate boolean variables
+        """
+        with self.assertRaises(Exception):
+            self.parse("023_boolean_cat_error")
+
+    def test_024(self):
+        """
+        Parse string list where comma is embedded into an element
+        """
+        self.assert_variables("024_stringlist_with_embedded_comma", \
+            {'variable': ['data12,data13']})
+
+    def test_025(self):
+        """
+        Nested sections
+        """
+        self.assert_data("025_nested_sections", \
+            [('section_outer', \
+             {'section_inner': {'data_inner': 'data56'}, \
+                                'data_outer': 'data57'})])
+
+    def test_026(self):
+        """
+        Parse multiple files that reference each other
+        """
+        soong = self.parse("026_multi_file-1")
+        soong.parse(self.fullpath("026_multi_file-2"))
+        self.assertEqual(soong.data(), \
+            [('section65', {'elem5': ['data54', 'data23', 'data87']})])
+
+    def test_027(self):
+        """
+        Assign to the same variables twice. NB: I'm not entirely sure whether
+        this is legal or not. For now, I assume this should not happen and
+        must be detected as an error. We will see when validating against
+        real-world data.
+        """
+        with self.assertRaises(DuplicateVariable):
+            self.parse("027_conflicting_vars")
+
+    def test_028(self):
+        """
+        Concatenating variables of conflicting types(e.g. string list and
+        string) should raise an exception.
+        """
+        with self.assertRaises(IncompatibleConcatenation):
+            self.parse("028_conflicting_concatenation")
+
+    def test_029(self):
+        """
+        Parse multiple files with multiple sections
+        """
+        soong = self.parse("029_multi_file_sections-1")
+        soong.parse(self.fullpath("029_multi_file_sections-2"))
+        self.assertEqual(soong.data(), \
+            [('section_645', {'elem64': 'data545'}), \
+             ('section_223', {'elem845': ['data1246', 'data659']})])
+
+    def test_030(self):
+        """
+        Concatenate an element of a string list with a variable
+        """
+        self.assert_variables("030_string_cat_in_stringlist", \
+            {'variable_a': 'data995',
+             'variable_b': ['data996', 'data997', 'data998data995']})
+
+    def test_031(self):
+        """
+        Cocatenate multiple variables with a string list
+        """
+        self.assert_data("031_multi_var_stringlist_cat", \
+            [('section', \
+             {'data': ["data1", "data2", "data3", "data4", "data5", "data6"]})])
+
+    def test_032(self):
+        """
+        Store section to variable
+        """
+        self.assert_data("032_section_variable", \
+            [('section', {'subsection': {'elem_327': 'data345'}})])
+
+    def test_033a(self):
+        """
+        Query the root of the build file
+        """
+        self.assert_query("033_query_test", "/section",
+                          ('section', {'name': 'first', 'data1': 'elem1', 'data2': 'elem2'}))
+
+    def test_033b(self):
+        """
+        Query by section name
+        """
+        self.assert_query("033_query_test", "/section_2", \
+            ('section_2', {'name': 'third', 'data3': 'elem3'}))
+
+    def test_033c(self):
+        """
+        Query a section that does not exist
+        """
+        with self.assertRaises(NotFound):
+            self.query("033_query_test", "/section_non_existent")
+
+    def test_033d(self):
+        """
+        An invalid query must raise an exception
+        """
+        with self.assertRaises(InvalidQuery):
+            self.query("033_query_test", "Invalid")
+
+    def test_033e(self):
+        """
+        Query a section by its name
+        """
+        self.assert_query("033_query_test", '/section[@name=second]', \
+            ('section', {'name': 'second', 'data2': 'elem2'}))
+
+    def test_034(self):
+        """
+        Ambiguous queries must result in an error
+        """
+        self.assert_query("034_query_wildcard", '/*[@name=data2]', \
+            ('section_2', \
+             {'name': 'data2', 'elem1': 'data3', 'elem2': 'data4'}))
+
+    def test_035a(self):
+        """
+        Query a sub-section by its name
+        """
+        self.assert_query("035_query_subsection", \
+            '/section_outer/section_inner', \
+                ('section_inner', {'name': 'data2'}))
+
+    def test_035b(self):
+        """
+        Query a non-existent sub-section by its name
+        """
+        with self.assertRaises(NotFound):
+            self.query("035_query_subsection", '/section_outer/invalid')
+
+    def test_036(self):
+        """
+        Query a sub-sub-section by its name
+        """
+        self.assert_query("036_query_subsubsection", \
+            '/section_outer/section_inner/section_second_inner', \
+            ('section_second_inner', {'name': 'data3'}))
+
+    def test_037(self):
+        """
+        Query a invalid sub-sub-section by its name
+        """
+        with self.assertRaises(NotFound):
+            self.query("037_query_invalid_subsubsection", \
+                '/section_outer/section_inner/invalid')
+
+    def test_038(self):
+        """
+        Query a sub-sub-section by its name attribute
+        """
+        self.assert_query("038_query_subsubsection_by_name", \
+            '/section_outer/*[@name=data2]/section_second_inner', \
+            ('section_second_inner', {'name': 'data3'}))
+
+    def test_039(self):
+        """
+        A duplicate entry in a section must be detected
+        """
+        with self.assertRaises(DuplicateEntry):
+            self.parse("039_duplicate_section_entry")
+
+    def test_040(self):
+        """
+        Query two sections
+        """
+        self.assert_query("040_query_multi_section", \
+            '/section_1|/section_2', \
+            ('section_2', {'elem1': 'data1', 'elem2': 'data2'}))
+
+    def test_041(self):
+        """
+        Query two sections with same string element
+        """
+        self.assert_query("041_query_multi_section_strings", \
+            '/section_1|/section_2', \
+            ('section_2', {'elem1': 'data2'}))
+
+    def test_042(self):
+        """
+        Query two sections with incompatible elements(string and string list)
+        """
+        with self.assertRaises(MergeIncompatibleSections):
+            self.query("042_query_multi_incompatible_sections", \
+                '/section_1|/section_2')
+
+    def test_043(self):
+        """
+        Query two sections with same list element
+        """
+        self.assert_query("043_query_multi_lists", \
+            '/section_1|/section_2', \
+            ('section_2', {'elem1': ['data1', 'data2', 'data3']}))
+
+    def test_044(self):
+        """
+        Query two sections with same boolean element
+        """
+        self.assert_query("044_query_multi_boolean", \
+            '/section_5|/section_7', \
+            ('section_7', {'elem53': False, 'elem54': True}))
+
+    def test_045(self):
+        """
+        Query two sections, merge subsection if not present in target section
+        """
+        self.assert_query("045_query_multi_subsection", \
+            '/section_1|/section_2', \
+            ('section_2', {'elem1': ['data1', 'data2', 'data4'], \
+                           'elem3': "data3", \
+                           'subsect1': {'elem2': True}, \
+                           'elem4': ['data5', 'data6']}))
+
+    def test_046(self):
+        """
+        Query two sections, merge subsection
+        """
+        self.assert_query("046_query_multi_subsect_merge", \
+            '/section_1|/section_2', \
+            ('section_2', {'elem1': ['data1', 'data2', 'data4'], \
+                           'elem3': 'data3', \
+                           'subsect1': {'elem2': True, 'elem5': False}, \
+                           'elem4': ['data5', 'data6']}))
+
+    def test_047(self):
+        """
+        Query a section with a default element
+        """
+        self.assert_query("047_query_defaults", '/section_2',
+                          ('section_2', {'name': 'sec_name',
+                                         'elem1': ['data1', 'data2', 'data4'],
+                                         'elem3': "data3",
+                                         'subsect1': {'elem2': True},
+                                         'elem4': ['data5', 'data6']}))
+
+    def test_048(self):
+        """
+        Query a section with two cascaded default elements
+        """
+        self.assert_query("048_query_defaults_recursive", '/section_3',
+                          ('section_3', {'name':  'third',
+                                         'elem1': 'data1',
+                                         'elem2': 'data2',
+                                         'elem3': 'data3'}))
+
+    def test_049(self):
+        """
+        Query a section with two default elements
+        """
+        self.assert_query("049_query_defaults_multi", '/section_3',
+                          ('section_3', {'name':  'third',
+                                         'elem1': 'data1',
+                                         'elem2': 'data2',
+                                         'elem3': 'data3'}))
+
+    def test_050(self):
+        """
+        If defaults is not a list, raise an error
+        """
+        with self.assertRaises(DefaultsNoList):
+            self.query("050_check_defaults_is_list", '/section_1')
+
+    def test_051(self):
+        """
+        If name is not a string, raise an error
+        """
+        with self.assertRaises(NameNoString):
+            self.query("051_check_name_is_string", '/section_1')
+
+    def test_052a(self):
+        """
+        Query a section with a default element and subsections to be merged
+        """
+        self.assert_query("052_query_recursive_subsect_merge", '/section_2',
+                          ('section_2', {'name': 'sec2',
+                                         'subsect_2': {'subsubsect_3': {'elem1': 'data1',
+                                                                        'elem3': 'data4'},
+                                                       'elem2': ['data2', 'data3'],
+                                                       'elem4': ['data5', 'data6']},
+                                         'elem5': 'data7'}))
+
+    def test_052b(self):
+        """
+        Represent a section as make fragment
+        """
+        self.assert_mk("052_query_recursive_subsect_merge", '/section_2',
+                       'ELEM5 = data7\nNAME = sec2\n')
+
+    def test_053(self):
+        """
+        Check conversion of lists to make variable
+        """
+        self.assert_mk("053_mk_list", '/section_1', 'ELEM1 = data1 data2 data3\nELEM2 = True\n')
+
+    def test_054(self):
+        """
+        Query a section and its own subsection
+        """
+        self.assert_query("054_query_merge_subsection", '/section_1|/section_1/subsec_1',
+                          ('subsec_1', {'elem1':    ['data1', 'data2', 'data3'],
+                                        'elem2':    'data5',
+                                        'elem3':    'data5',
+                                        'subsec_1': {'elem1': ['data3'], 'elem2': 'data5'}}))
+
+    def test_052c(self):
+        """
+        Represent a section as make fragment using a variable prefix
+        """
+        self.assert_mk("052_query_recursive_subsect_merge", '/section_2',
+                       'DMK_ELEM5 = data7\nDMK_NAME = sec2\n', "DMK_")
+
+    def test_055(self):
+        """
+        Subqueries sporadically result in an KeyError exception
+        """
+        self.query("055_regression_subquery",
+                   '/cc_library[@name=liblog]|/cc_library[@name=liblog]/target/host')
+
+    def test_056(self):
+        """
+        Default entry which maps to multiple result sections.
+        """
+        self.assert_query("056_multiple_default_results", '/section_1',
+                          ('section_1', {'elem1': ['data1', 'data3', 'data4'],
+                                         'elem2': ['data2', 'data5'],
+                                         'elem3': ['data3'],
+                                         'name':  'sec1_defaults'}))
+
+    def test_057(self):
+        """
+        Query subsection where section has multiple results.
+        """
+        self.assert_query("057_ambiguous_intermediate_query", '/section_1/subsec_1',
+                          ('subsec_1', {'elem1': 'data1'}))
+
+    def test_058(self):
+        """
+        Query with multiple results.
+        """
+        self.assert_query("058_multi_result_query", '/section_1',
+                          ('section_1', {'elem1': 'data1', 'elem2': 'data2'}))
+
+    def test_059(self):
+        """
+        Query with three results.
+        """
+        self.assert_query("059_triple_result_query", '/section_1',
+                          ('section_1', {'elem1': 'data1', 'elem2': 'data2', 'elem3': 'data3'}))
+
+    def test_060(self):
+        """
+        Have defaults in separate file that is loaded in advance
+        """
+        soong = self.parse("060_defaults_in_separate_file-1")
+        soong.parse(self.fullpath("060_defaults_in_separate_file-2"))
+        soong.resolve_defaults()
+        data = soong.query('/*[@name=base]')
+        self.assertEqual(data, ('section_1', {'name': 'base', 'data1': 'elem1', 'data2': 'elem2'}))
+
+    def test_061(self):
+        """
+        Have defaults in separate file that is loaded in advance, regression test
+        """
+
+        soong = self.parse("061_regression_defaults-1")
+        soong.parse(self.fullpath("061_regression_defaults-2"))
+        soong.resolve_defaults()
+        data = soong.query('/*[@name=libart_defaults]')
+        self.assertEqual(data, ('cc_defaults', {'name': 'libart_defaults'}))
+
+    def test_062(self):
+        """
+        Merge two simple sections when two sections exist
+        """
+        target = {'data1': 'elem1'}
+        merge_section({'data2': 'elem2'}, target)
+        self.assertEqual(target, {'data1': 'elem1', 'data2': 'elem2'})
+
+    def test_063(self):
+        """
+        Merge two simple sections when target section is empty
+        """
+        target = {}
+        merge_section({'data2': 'elem2'}, target)
+        self.assertEqual(target, {'data2': 'elem2'})
+
+    def test_064(self):
+        """
+        Merge two simple sections when source section is empty
+        """
+        target = {'data2': 'elem2'}
+        merge_section({}, target)
+        self.assertEqual(target, {'data2': 'elem2'})
+
+    def test_065(self):
+        """
+        Query a section that is defined by extending a variable by some constant. The same
+        variable is extended in a different section which must have no influence on other
+        sections where the same variable is extended (i.e. a copy must be created). This is
+        a regression test.
+        """
+        self.assert_query("065_extend_var_multi", '/section_1',
+                          ('section_1', {'name': 'sec1', 'elem1': ['data1', 'data2']}))
+
+    def test_066(self):
+        """
+        Defaults are not incorporated in this example. Regression test.
+        """
+        self.assert_mk("066_defaults_regression", '/cc_test[@name=libcutils_test]',
+                       'CFLAGS = -Wall -Werror -Wextra\n' +
+                       'NAME = libcutils_test\n' +
+                       'SHARED_LIBS = libbase libcutils liblog\n' +
+                       'SRCS = sockets_test.cpp\n')
+
+    def test_067(self):
+        """
+        Test whether hash sign is properly escaped in make output
+        """
+        self.assert_mk("067_escape_hash", '/section_1',
+                       'ELEM1 = da\\#ta1\nNAME = sec1\n', "")
+
+
+if __name__ == "__main__":
+
+    PARSER = argparse.ArgumentParser(description='Translate soong files to make statements')
+    PARSER.add_argument('-v', '--verbose', help='Verbose output', action='store_true')
+    PARSER.add_argument('-b', '--basedir', help='Base directory', action='store')
+    PARSER.add_argument('-i', '--input', help='Input file to load', action='append')
+    PARSER.add_argument('-o', '--output', help='Output file', action='store')
+    PARSER.add_argument('-p', '--prefix', help='Prepend prefix to variables',
+                        action='store', default='')
+    PARSER.add_argument('--test', help='Run tests', action='store_true')
+    PARSER.add_argument('queries', help='Query data from soong file', nargs='*')
+    ARGS = PARSER.parse_args()
+
+    if ARGS.test:
+        SUITE = unittest.TestLoader().loadTestsFromTestCase(TestSoong)
+        TESTRESULT = unittest.TextTestRunner().run(SUITE)
+
+        if len(TESTRESULT.failures) > 0 or len(TESTRESULT.errors) > 0:
+            sys.exit(1)
+
+        print("Testing Android build files ", end='')
+        NO_FILES = 0
+        SOONG_PARSER = Soong(ignore_vars=['subdirs', 'build', 'common_CFLAGS', 'common_cflags'])
+        for root, dirs, files in os.walk('tests/android'):
+            for soong_file in sorted(files):
+                print('.', end='', flush=True)
+                NO_FILES += 1
+                full = root + "/" + soong_file
+                try:
+                    SOONG_PARSER.parse(full)
+                except MissingVariable:
+                    pass
+                except Exception:
+                    print("\n" + full)
+                    raise
+
+        print("\n%d files tests" % (NO_FILES))
+        sys.exit(0)
+
+    if not ARGS.basedir:
+        print("No --basedir directory set")
+        PARSER.print_help()
+        sys.exit(1)
+
+    if not ARGS.input:
+        print("No --input file set")
+        PARSER.print_help()
+        sys.exit(1)
+
+    if not ARGS.output:
+        print("No --output file set")
+        PARSER.print_help()
+        sys.exit(1)
+
+    if len(ARGS.queries) == 0:
+        print("No query")
+        PARSER.print_help()
+        sys.exit(1)
+
+    SOONG_PARSER = Soong(ARGS.basedir)
+    for soong_file in ARGS.input:
+        SOONG_PARSER.parse(soong_file)
+
+    SOONG_PARSER.resolve_defaults()
+
+    try:
+        QUERY_TEXT = "|".join(ARGS.queries)
+        QUERY_RESULT = SOONG_PARSER.query(QUERY_TEXT)
+        with open(ARGS.output, 'w') as outfile:
+            outfile.write(make_vars(QUERY_RESULT, ARGS.prefix))
+    except Exception as exception:
+        print('$(error ERROR EXECUTING GNOOS: ' + str(exception) + ')')
+        raise

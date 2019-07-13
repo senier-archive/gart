@@ -1,0 +1,15 @@
+section_1 {
+	elem1: ["data1", "data2"],
+	subsect1: {
+		elem2: true
+	},
+	elem3: "data3"
+}
+
+section_2 {
+	elem1: ["data4"],
+	subsect1: {
+		elem5: false
+	},
+	elem4: ["data5", "data6"]
+}

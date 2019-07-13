@@ -1,0 +1,4 @@
+cc_defaults {
+    name: "libart_defaults",
+    defaults: ["art_defaults"]
+}

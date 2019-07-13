@@ -1,0 +1,6 @@
+section8
+{
+	element8: ["data1", "data2", "data3"],
+	element9: ["data4", "data5"],
+	element10: ["data6"]
+}

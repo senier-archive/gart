@@ -1,0 +1,8 @@
+var1 = "VARIABLE1"
+var2 = "VARIABLE2"
+
+section_12 {
+	data7: "left" + var1,
+	data8: var2 + "right"
+}
+

@@ -1,0 +1,16 @@
+defaulta {
+	name: "sec1_defaults",
+	elem1: ["data1"]
+}
+
+defaultb {
+	name: "sec1_defaults",
+	elem2: ["data2"],
+	elem3: ["data3"]
+}
+
+section_1 {
+	defaults: ["sec1_defaults"],
+	elem1: ["data3", "data4"],
+	elem2: ["data5"]
+}

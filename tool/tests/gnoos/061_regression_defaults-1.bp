@@ -1,0 +1,3 @@
+art_global_defaults {
+    name: "art_defaults"
+}

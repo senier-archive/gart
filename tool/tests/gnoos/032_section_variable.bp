@@ -1,0 +1,7 @@
+variable_987 = {
+	elem_327: "data345"
+}
+
+section {
+	subsection: variable_987
+}

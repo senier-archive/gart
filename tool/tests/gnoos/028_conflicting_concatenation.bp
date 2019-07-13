@@ -1,0 +1,3 @@
+variable_855 = ["data64", "data65"]
+variable_754 = "data333"
+variable_442 = variable_855 + variable_754

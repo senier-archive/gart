@@ -1,0 +1,6 @@
+variable_4 = ["data3", "data4"]
+
+section_11 {
+	// Variable not present
+	data5: variable_5
+}

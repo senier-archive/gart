@@ -1,0 +1,5 @@
+boolvar = true
+
+section_123 {
+	boolean: boolvar
+}

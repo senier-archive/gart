@@ -1,0 +1,5 @@
+variable_77 = ["data33", "data34", "data35"]
+
+section_21 {
+	data8: ["data30", "data32"] + variable_77
+}

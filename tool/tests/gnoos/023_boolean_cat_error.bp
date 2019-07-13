@@ -1,0 +1,4 @@
+variable_567 = True 
+variable_890 = False
+
+result = variable_567 + variable_890
