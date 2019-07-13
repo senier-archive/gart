@@ -78,7 +78,7 @@ def merge_section(source, target):
             if target_elem_type == dict:
                 merge_section(source[elem], target[elem])
             elif target_elem_type == list:
-                target[elem][:0] = copy.deepcopy(source[elem])
+                target[elem] = copy.deepcopy(source[elem]) + target[elem]
             elif target_elem_type == str or target_elem_type == bool:
                 pass
             else:
