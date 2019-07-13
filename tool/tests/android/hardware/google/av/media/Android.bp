@@ -1,0 +1,4 @@
+subdirs = [
+    "codecs",
+    "sfplugin",
+]
