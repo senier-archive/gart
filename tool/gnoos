@@ -1002,7 +1002,10 @@ if __name__ == "__main__":
 
         print("Testing Android build files ", end='')
         NO_FILES = 0
-        SOONG_PARSER = Soong(ignore_vars=['subdirs', 'build', 'common_CFLAGS', 'common_cflags'])
+        SOONG_PARSER = Soong(ignore_vars=['subdirs', 'build', 'common_CFLAGS', 'common_cflags', 'sourceFiles',
+                                          'sharedLibraries', 'staticLibraries', 'headerLibraries',
+                                          'header_libraries', 'includeFiles', 'localIncludeFiles', 'shared_libs',
+                                          'shared_libraries', 'static_libraries', 'static_libs'])
         for root, dirs, files in os.walk('tests/android'):
             for soong_file in sorted(files):
                 print('.', end='', flush=True)
