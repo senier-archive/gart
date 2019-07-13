@@ -1,0 +1,9 @@
+sudo: required
+
+language: c
+
+services:
+    - docker
+
+script:
+    - docker run -v $PWD:/gart -t jklmnn/componolit-ci /gart/test/run.sh
