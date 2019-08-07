@@ -46,8 +46,10 @@ class SoongGraph(SOONG.Soong):
     def __init__(self, rootdir, dirs, querytext, reduction=False, target=None, arch=None):
 
         SOONG.Soong.__init__(self, rootdir,
-                             ignore_vars=['subdirs', 'build', 'common_CFLAGS', 'common_cflags'])
-
+                             ignore_vars=['subdirs', 'build', 'common_CFLAGS', 'common_cflags', 'sourceFiles',
+                                          'sharedLibraries', 'staticLibraries', 'headerLibraries',
+                                          'header_libraries', 'includeFiles', 'localIncludeFiles', 'shared_libs',
+                                          'shared_libraries', 'static_libraries', 'static_libs'])
         self.__target = target
         self.__arch = arch
 
