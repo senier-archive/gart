@@ -2,16 +2,19 @@
 # pylint: disable=missing-docstring
 
 import re
-import imp
 import argparse
 
 from pathlib import Path
 from math import sqrt
 
-import pygraphviz as pgv
+from importlib.util import spec_from_loader, module_from_spec
+from importlib.machinery import SourceFileLoader
 
-# load gnoos as library (we can't use import at it has no .py ending)
-SOONG = imp.load_source('.', 'gnoos')
+spec = spec_from_loader("gnoos", SourceFileLoader("gnoos", "gnoos"))
+SOONG = module_from_spec(spec)
+spec.loader.exec_module(SOONG)
+
+import pygraphviz as pgv
 
 class SoongGraph(SOONG.Soong):
 
