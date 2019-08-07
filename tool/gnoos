@@ -10,7 +10,7 @@ import unittest
 
 from pyparsing import \
     Word, Suppress, Literal, alphanums, Optional, delimitedList, Group, OneOrMore, StringEnd, \
-    QuotedString, Forward, ZeroOrMore, cppStyleComment, cStyleComment, ParseException
+    QuotedString, Forward, ZeroOrMore, cppStyleComment, cStyleComment, ParseException, nums
 
 class MissingVariable(Exception):
     pass
@@ -179,6 +179,9 @@ class Soong:
         # String
         string = QuotedString('"', escChar='\\').setParseAction(lambda s, l, t: t[0])
 
+        # Numeral
+        numeral = Word(nums).setParseAction(lambda t: int(t[0]))
+
         # String concatenation
         stringcat = delimitedList(string|varref, delim='+')
         stringcat.setParseAction(stringcat_action)
@@ -190,7 +193,7 @@ class Soong:
         stringlist.setParseAction(stringlist_action)
 
         # Concatenation of strings, strings lists and variables
-        element = delimitedList(string|stringlist|varref, delim='+')
+        element = delimitedList(string|stringlist|numeral|varref, delim='+')
         element.setParseAction(element_action)
 
         # Data
@@ -978,6 +981,13 @@ class TestSoong(unittest.TestCase):
         """
         self.assert_mk("067_escape_hash", '/section_1',
                        'ELEM1 = da\\#ta1\nNAME = sec1\n', "")
+
+    def test_068(self):
+        """
+        Test entry with numeric literal value
+        """
+        self.assert_data("068_numeric_literal", \
+            [('section_1', {'value1': 1238, 'value2': '1238'})])
 
 
 if __name__ == "__main__":
