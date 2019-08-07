@@ -59,7 +59,9 @@ class SoongGraph(SOONG.Soong):
                 for current_file in current_dir.glob('**/*.bp'):
                     # Filter out templates
                     if not re.match('.*_template\.bp$', str(current_file)):
-                        self.parse(str(current_file.relative_to(rootdir)))
+                        filename=str(current_file.relative_to(rootdir))
+                        print("Parsing {}".format(filename))
+                        self.parse(filename)
             except OSError:
                 pass
 
@@ -123,8 +125,8 @@ if __name__ == "__main__":
     PARSER.add_argument('-o', '--output', help='Output file', action='store', required=True)
     PARSER.add_argument('-r', '--rootdir', help='Root directory', action='store', required=True)
     PARSER.add_argument('-d', '--dir', help='Directory to scan', action='append', required=True)
-    PARSER.add_argument('-t', '--target', help='Consider subsection for target')
-    PARSER.add_argument('-a', '--arch', help='Consider subsection for arch')
+    PARSER.add_argument('-t', '--target', help='Consider subsection for target', required=True)
+    PARSER.add_argument('-a', '--arch', help='Consider subsection for arch', required=True)
     PARSER.add_argument('-q', '--query', help='Query to build graph from', required=True)
     PARSER.add_argument('-R', '--reduction', help='Run transitive reduction', action='store_true')
     PARSER.add_argument('-H', '--histogram', help='Print in-degree histogram', action='store_true')
