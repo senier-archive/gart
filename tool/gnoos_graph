@@ -43,7 +43,7 @@ class SoongGraph(SOONG.Soong):
                 self.__graph.add_edge(secdata['name'], lib, color='#f0a848')
                 self.add_edges(self.query('/*[@name=' + lib + ']'))
 
-    def __init__(self, rootdir, dirs, querytext, reduction=False, target=None, arch=None):
+    def __init__(self, rootdir, dirs, querytext, reduction=False, target=None, arch=None, label=False):
 
         SOONG.Soong.__init__(self, rootdir,
                              ignore_vars=['subdirs', 'build', 'common_CFLAGS', 'common_cflags', 'sourceFiles',
@@ -52,6 +52,7 @@ class SoongGraph(SOONG.Soong):
                                           'shared_libraries', 'static_libraries', 'static_libs'])
         self.__target = target
         self.__arch = arch
+        self.__label = label
 
         for directory in dirs:
             current_dir = Path(rootdir) / Path(directory)
@@ -73,8 +74,10 @@ class SoongGraph(SOONG.Soong):
         self.__graph.node_attr['color'] = '#505050'
         self.__graph.node_attr['penwidth'] = '0.0'
         self.__graph.graph_attr['fontname'] = 'Arimo'
-        self.__graph.graph_attr['label'] = \
-            'QUERY: ' + querytext + ' / ARCH: ' + arch + ' / TARGET: ' + target
+
+        if self.__label:
+            self.__graph.graph_attr['label'] = \
+                'QUERY: ' + ', '.join(queries) + ' / ARCH: ' + arch + ' / TARGET: ' + target
 
         self.__graph.edge_attr['penwidth'] = '5.0'
 
@@ -131,9 +134,10 @@ if __name__ == "__main__":
     PARSER.add_argument('-R', '--reduction', help='Run transitive reduction', action='store_true')
     PARSER.add_argument('-H', '--histogram', help='Print in-degree histogram', action='store_true')
     PARSER.add_argument('-D', '--dump', help='Dump DOT file', action='store')
+    PARSER.add_argument('-l', '--label', help='Add label to graph', action='store')
     ARGS = PARSER.parse_args()
 
-    GRAPH = SoongGraph(ARGS.rootdir, ARGS.dir, ARGS.query, ARGS.reduction, ARGS.target, ARGS.arch)
+    GRAPH = SoongGraph(ARGS.rootdir, ARGS.dir, ARGS.query, ARGS.reduction, ARGS.target, ARGS.arch, ARGS.label)
     if ARGS.histogram:
         GRAPH.hist()
     if ARGS.dump:
