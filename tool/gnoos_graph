@@ -43,7 +43,7 @@ class SoongGraph(SOONG.Soong):
                 self.__graph.add_edge(secdata['name'], lib, color='#f0a848')
                 self.add_edges(self.query('/*[@name=' + lib + ']'))
 
-    def __init__(self, rootdir, dirs, querytext, reduction=False, target=None, arch=None, label=False):
+    def __init__(self, rootdir, dirs, queries, reduction=False, target=None, arch=None, label=False):
 
         SOONG.Soong.__init__(self, rootdir,
                              ignore_vars=['subdirs', 'build', 'common_CFLAGS', 'common_cflags', 'sourceFiles',
@@ -84,7 +84,8 @@ class SoongGraph(SOONG.Soong):
         # Resolve all defaults
         self.resolve_defaults()
 
-        self.add_edges(self.query(querytext))
+        for querytext in queries:
+            self.add_edges(self.query(querytext))
 
         for node in self.__graph.nodes():
             in_degree = self.__graph.in_degree(node)
@@ -130,7 +131,7 @@ if __name__ == "__main__":
     PARSER.add_argument('-d', '--dir', help='Directory to scan', action='append', required=True)
     PARSER.add_argument('-t', '--target', help='Consider subsection for target', required=True)
     PARSER.add_argument('-a', '--arch', help='Consider subsection for arch', required=True)
-    PARSER.add_argument('-q', '--query', help='Query to build graph from', required=True)
+    PARSER.add_argument('-q', '--query', help='Query to build graph from', action='append', required=True)
     PARSER.add_argument('-R', '--reduction', help='Run transitive reduction', action='store_true')
     PARSER.add_argument('-H', '--histogram', help='Print in-degree histogram', action='store_true')
     PARSER.add_argument('-D', '--dump', help='Dump DOT file', action='store')
