@@ -65,13 +65,13 @@ class SoongGraph(SOONG.Soong):
             except OSError:
                 pass
 
-        self.__graph = pgv.AGraph(directed=True, splines='ortho', nodesep='1.5', ranksep='5.5')
+        self.__graph = pgv.AGraph(directed=True)
         self.__graph.node_attr['fontname'] = 'Arimo'
         self.__graph.node_attr['shape'] = 'rectangle'
         self.__graph.node_attr['style'] = 'rounded, filled'
         self.__graph.node_attr['fontcolor'] = 'white'
         self.__graph.node_attr['color'] = '#505050'
-        self.__graph.node_attr['penwidth'] = '5.0'
+        self.__graph.node_attr['penwidth'] = '0.0'
         self.__graph.graph_attr['fontname'] = 'Arimo'
         self.__graph.graph_attr['label'] = \
             'QUERY: ' + querytext + ' / ARCH: ' + arch + ' / TARGET: ' + target
@@ -100,7 +100,7 @@ class SoongGraph(SOONG.Soong):
 
         print("Drawing graph with " + str(self.__graph.order()) + " nodes and " + \
               str(self.__graph.number_of_edges()) + " edges")
-        self.__graph.draw(filename, format='pdf', prog='dot')
+        self.__graph.draw(filename, format=Path(filename).suffix[1:], prog='dot')
 
     def hist(self):
 
