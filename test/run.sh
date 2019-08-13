@@ -4,7 +4,7 @@ GENODE_DIR=/genode
 
 # Install pyparsing
 apt update
-apt -y install python3-pyparsing
+apt -y install python3-pyparsing xorriso
 
 # Test gnoos
 cd /gart/tool
@@ -16,7 +16,7 @@ git fetch --all
 git checkout sculpt-19.07
 
 # Setup external repos
-git clone https://github.com/genodelabs/genode-world.git ${GENODE_DIR}/repos/world
+git clone -b gtest_base_linux https://github.com/Componolit/genode-world.git ${GENODE_DIR}/repos/world
 ln -sf /gart ${GENODE_DIR}/repos/gart
 
 # Configure build
