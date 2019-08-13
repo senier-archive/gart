@@ -10,6 +10,11 @@ apt -y install python3-pyparsing
 cd /gart/tool
 ./gnoos --test
 
+# Update Genode repository and check out sculpt-19.07
+cd ${GENODE_DIR}
+git fetch --all
+git checkout sculpt-19.07
+
 # Setup external repos
 git clone https://github.com/genodelabs/genode-world.git ${GENODE_DIR}/repos/world
 ln -sf /gart ${GENODE_DIR}/repos/gart
@@ -25,7 +30,8 @@ BASE_DIR := ${GENODE_DIR}/repos/base
 CONTRIB_DIR := ${GENODE_DIR}/contrib
 
 MAKE += -j8
-KERNEL = linux
+KERNEL ?= linux
+BOARD ?= linux
 
 RUN_OPT += --include power_on/linux --include log/linux --include boot_dir/linux
 
@@ -41,4 +47,10 @@ EOF
 # Prepare ports
 /genode/tool/ports/prepare_port googletest
 
-make -C /genode_build run/log
+# Tests to run
+COMMON_TESTS = run/log
+LINUX_TESTS =
+NOVA_TESTS = run/gtest
+
+make -C /genode_build KERNEL=linux BOARD=linux $(COMMON_TESTS) $(LINUX_TESTS)
+make -C /genode_build KERNEL=nova BOARD=pc $(COMMON_TESTS) $(NOVA_TESTS)
