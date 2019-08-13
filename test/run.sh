@@ -48,9 +48,7 @@ EOF
 /genode/tool/ports/prepare_port googletest
 
 # Tests to run
-COMMON_TESTS = run/log
-LINUX_TESTS =
-NOVA_TESTS = run/gtest
+TESTS=run/log run/gtest
 
-make -C /genode_build KERNEL=linux BOARD=linux $(COMMON_TESTS) $(LINUX_TESTS)
-make -C /genode_build KERNEL=nova BOARD=pc $(COMMON_TESTS) $(NOVA_TESTS)
+make -C /genode_build KERNEL=linux BOARD=linux $(TESTS)
+make -C /genode_build KERNEL=nova BOARD=pc $(TESTS)
