@@ -30,12 +30,9 @@ BASE_DIR := ${GENODE_DIR}/repos/base
 CONTRIB_DIR := ${GENODE_DIR}/contrib
 
 MAKE += -j8
-KERNEL ?= linux
-BOARD ?= linux
-
-RUN_OPT += --include power_on/linux --include log/linux --include boot_dir/linux
 
 REPOSITORIES += ${GENODE_DIR}/repos/base-linux
+REPOSITORIES += ${GENODE_DIR}/repos/base-nova
 REPOSITORIES += ${GENODE_DIR}/repos/base
 REPOSITORIES += ${GENODE_DIR}/repos/os
 REPOSITORIES += ${GENODE_DIR}/repos/libports
@@ -53,5 +50,5 @@ TESTS="
    run/gtest
 "
 
-make -C /genode_build KERNEL=linux BOARD=linux ${TESTS}
-make -C /genode_build KERNEL=nova BOARD=pc ${TESTS}
+make -C /genode_build ${TESTS} KERNEL=linux BOARD=linux RUN_OPT="--include power_on/linux --include log/linux --include boot_dir/linux"
+make -C /genode_build ${TESTS} KERNEL=nova BOARD=pc RUN_OPT="--include power_on/qemu  --include log/qemu --include image/iso --include boot_dir/nova"
