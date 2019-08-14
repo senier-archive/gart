@@ -4,7 +4,7 @@ GENODE_DIR=/genode
 
 # Install pyparsing
 apt update
-apt -y install python3-pyparsing xorriso
+apt -y install python3-pyparsing xorriso qemu-system
 
 # Test gnoos
 cd /gart/tool
