@@ -52,3 +52,4 @@ TESTS="
 
 make -C /genode_build ${TESTS} KERNEL=linux BOARD=linux EXT_RUN_OPT="--include power_on/linux --include log/linux"
 make -C /genode_build ${TESTS} KERNEL=nova BOARD=pc EXT_RUN_OPT="--include power_on/qemu  --include log/qemu --include image/iso"
+make -C /genode_build ${TESTS} KERNEL=foc BOARD=pc EXT_RUN_OPT="--include power_on/qemu  --include log/qemu --include image/iso"
