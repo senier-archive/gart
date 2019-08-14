@@ -1,5 +1,36 @@
 #!/bin/sh -eu
 
+create_builddir()
+{
+
+ARCH=$1
+GD=$2
+
+echo "Setting up /genode_build/${ARCH} for ${ARCH}, source dir ${GD}"
+
+# Configure build
+mkdir -p /genode_build/${ARCH}/etc
+ln -sf ${GD}/tool/builddir/build.mk /genode_build/${ARCH}/Makefile
+echo "SPECS += ${ARCH}" > /genode_build/${ARCH}/etc/specs.conf
+
+cat << EOF > /genode_build/${ARCH}/etc/build.conf
+GENODE_DIR := ${GD}
+BASE_DIR := ${GD}/repos/base
+CONTRIB_DIR := ${GD}/contrib
+
+MAKE += -j8
+
+RUN_OPT += \$(EXT_RUN_OPT) --include boot_dir/\$(KERNEL)
+REPOSITORIES += ${GD}/repos/base-\$(KERNEL)
+REPOSITORIES += ${GD}/repos/base
+REPOSITORIES += ${GD}/repos/os
+REPOSITORIES += ${GD}/repos/libports
+REPOSITORIES += ${GD}/repos/ports
+REPOSITORIES += ${GD}/repos/world
+REPOSITORIES += ${GD}/repos/gart
+EOF
+}
+
 GENODE_DIR=/genode
 
 # Install pyparsing
@@ -19,27 +50,9 @@ git checkout sculpt-19.07
 git clone -b gtest_base_linux https://github.com/Componolit/genode-world.git ${GENODE_DIR}/repos/world
 ln -sf /gart ${GENODE_DIR}/repos/gart
 
-# Configure build
-mkdir -p /genode_build/etc
-ln -sf ${GENODE_DIR}/tool/builddir/build.mk /genode_build/Makefile
-echo 'SPECS += x86_64' > /genode_build/etc/specs.conf
-
-cat << EOF > /genode_build/etc/build.conf
-GENODE_DIR := ${GENODE_DIR}
-BASE_DIR := ${GENODE_DIR}/repos/base
-CONTRIB_DIR := ${GENODE_DIR}/contrib
-
-MAKE += -j8
-
-RUN_OPT += \$(EXT_RUN_OPT) --include boot_dir/\$(KERNEL)
-REPOSITORIES += ${GENODE_DIR}/repos/base-\$(KERNEL)
-REPOSITORIES += ${GENODE_DIR}/repos/base
-REPOSITORIES += ${GENODE_DIR}/repos/os
-REPOSITORIES += ${GENODE_DIR}/repos/libports
-REPOSITORIES += ${GENODE_DIR}/repos/ports
-REPOSITORIES += ${GENODE_DIR}/repos/world
-REPOSITORIES += ${GENODE_DIR}/repos/gart
-EOF
+# Set up build dir
+create_builddir x86_64 ${GENODE_DIR}
+create_builddir arm_v8a ${GENODE_DIR}
 
 # Prepare ports
 /genode/tool/ports/prepare_port googletest
@@ -50,6 +63,7 @@ TESTS="
    run/gtest
 "
 
-make -C /genode_build ${TESTS} KERNEL=linux BOARD=linux EXT_RUN_OPT="--include power_on/linux --include log/linux"
-make -C /genode_build ${TESTS} KERNEL=nova BOARD=pc EXT_RUN_OPT="--include power_on/qemu  --include log/qemu --include image/iso"
-make -C /genode_build ${TESTS} KERNEL=foc BOARD=pc EXT_RUN_OPT="--include power_on/qemu  --include log/qemu --include image/iso"
+
+make -C /genode_build/x86_64 ${TESTS} KERNEL=linux BOARD=linux EXT_RUN_OPT="--include power_on/linux --include log/linux"
+make -C /genode_build/x86_64 ${TESTS} KERNEL=nova BOARD=pc EXT_RUN_OPT="--include power_on/qemu --include log/qemu --include image/iso"
+make -C /genode_build/arm_v8a ${TESTS} KERNEL=foc BOARD=rpi3 EXT_RUN_OPT="--include power_on/qemu --include log/qemu"
