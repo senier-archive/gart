@@ -1,22 +1,35 @@
 #pragma once
 
+#include <pthread.h>
+
 namespace std {
     class mutex;
     template <class Mutex> class lock_guard;
 }
 
-class std::mutex : Genode::Lock {
+class std::mutex {
+
+        pthread_mutex_t _mutex;
 
     public:
 
+        std::mutex& operator=(const std::mutex& other) = delete;
+        mutex(const std::mutex& mtx) : _mutex (mtx._mutex) { }
+        mutex() : _mutex (PTHREAD_MUTEX_INITIALIZER) { }
+
+        ~mutex()
+        {
+            pthread_mutex_destroy (&_mutex);
+        }
+
         void lock(void)
         {
-            // FIXME: Implement
+            pthread_mutex_lock (&_mutex);
         };
 
         void unlock(void)
         {
-            // FIXME: Implement
+            pthread_mutex_unlock (&_mutex);
         };
 };
 
