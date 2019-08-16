@@ -50,10 +50,11 @@ DUMMY := $(shell $(COMMAND))
 
 include $(ANDROID_OUTPUT)
 
-SRC_C   += $(filter-out $(ANDROID_EXCLUDE_C),$(filter %.c,$($(ANDROID_NAME)_SRCS)))
-SRC_CC  += $(filter-out $(ANDROID_EXCLUDE_CC),$(filter %.cpp %.cc,$($(ANDROID_NAME)_SRCS)))
-SRC_S   += $(filter-out $(ANDROID_EXCLUDE_S),$(filter %.S %.s,$($(ANDROID_NAME)_SRCS)))
-CC_OPT  += -Werror -D__GENODE__ -D__ANDROID__ $(filter-out $(ANDROID_EXCLUDE_OPT),$($(ANDROID_NAME)_CFLAGS))
+SRC_C  += $(filter-out $(ANDROID_EXCLUDE_C),$(filter %.c,$($(ANDROID_NAME)_SRCS)))
+SRC_CC += $(filter-out $(ANDROID_EXCLUDE_CC),$(filter %.cpp %.cc,$($(ANDROID_NAME)_SRCS)))
+SRC_S  += $(filter-out $(ANDROID_EXCLUDE_S),$(filter %.S %.s,$($(ANDROID_NAME)_SRCS)))
+CC_OPT += -Werror -D__GENODE__ -D__ANDROID__ $(filter-out $(ANDROID_EXCLUDE_OPT),$($(ANDROID_NAME)_CFLAGS))
+CC_OPT += -Wno-unused-function -Wno-unused-variable -Wno-unused-parameter
 CC_CXX_WARN_STRICT =
 
 INCLUDE_DIRS = \
@@ -67,7 +68,7 @@ vpath % $(addprefix $(ANDROID_BASEDIR)/,$(ANDROID_SOURCES))
 
 # Include these libraries by default
 LIBS += libc cxx stdcxx
-LIBS += $(filter-out $(ANDROID_EXCLUDE_LIBS),$($(ANDROID_NAME)_SHARED_LIBS) $($(ANDROID_NAME)_STATIC_LIBS))
+LIBS += $(addprefix gart_,$(filter-out $(ANDROID_EXCLUDE_LIBS),$($(ANDROID_NAME)_SHARED_LIBS) $($(ANDROID_NAME)_STATIC_LIBS)))
 
 else
 $(error ANDROID_NAME not set)

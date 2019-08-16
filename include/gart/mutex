@@ -1,0 +1,32 @@
+#pragma once
+
+namespace std {
+    class mutex;
+    template <class Mutex> class lock_guard;
+}
+
+class std::mutex : Genode::Lock {
+
+    public:
+
+        void lock(void)
+        {
+            // FIXME: Implement
+        };
+
+        void unlock(void)
+        {
+            // FIXME: Implement
+        };
+};
+
+template <class Mutex>
+class std::lock_guard : Genode::Lock_guard<Mutex> {
+
+    public:
+
+        lock_guard (Mutex m)
+        :
+            Genode::Lock_guard<Mutex>(m)
+        { };
+};
