@@ -1,5 +1,6 @@
 #pragma once
 
+#include <base/lock_guard.h>
 #include <pthread.h>
 
 namespace std {
