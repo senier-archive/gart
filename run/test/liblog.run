@@ -3,8 +3,7 @@
 #
 
 set build_components {
-	core init
-	drivers/timer
+	core init timer
 	test/liblog
 }
 
@@ -60,7 +59,7 @@ install_config {
 # generic modules
 set boot_modules {
 	core init timer ld.lib.so
-	libc.lib.so stdcxx.lib.so
+	vfs.lib.so libc.lib.so libm.lib.so stdcxx.lib.so
 	gart_liblog.lib.so
 	liblog_test
 }
