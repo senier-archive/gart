@@ -22,8 +22,9 @@ class _mutex_internal {
         _mutex_internal() : _mutex(PTHREAD_MUTEX_INITIALIZER) {
             pthread_mutexattr_t attrs;
             pthread_mutexattr_init(&attrs);
-            pthread_mutexattr_settype(&attrs, type == RECURSIVE ? PTHREAD_MUTEX_RECURSIVE: PTHREAD_MUTEX_NORMAL);
+            pthread_mutexattr_settype(&attrs, type == RECURSIVE ? PTHREAD_MUTEX_RECURSIVE : PTHREAD_MUTEX_NORMAL);
             pthread_mutex_init(&_mutex, &attrs);
+            pthread_mutexattr_destroy(&attrs);
         }
 
         ~_mutex_internal()
