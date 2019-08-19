@@ -63,6 +63,7 @@ TESTS="
    run/log
    run/gtest
    run/test/libbase
+   run/test/liblog
 "
 
 

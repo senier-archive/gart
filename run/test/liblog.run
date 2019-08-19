@@ -33,7 +33,7 @@ install_config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="100"/>
+	<default caps="1000"/>
 
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
@@ -45,7 +45,11 @@ install_config {
 		<config>
 			<vfs>
 				<dir name="tmp"> <ram/> </dir>
-				<dir name="dev"> <log/> <inline name="rtc">2018-01-01 00:01</inline> </dir>
+				<dir name="dev">
+               <log/>
+               <log name="pmsg0"/>
+               <inline name="rtc">2018-01-01 00:01</inline>
+            </dir>
 			</vfs>
 			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" />
 		</config>
@@ -59,8 +63,8 @@ install_config {
 # generic modules
 set boot_modules {
 	core init timer ld.lib.so
-	vfs.lib.so libc.lib.so libm.lib.so stdcxx.lib.so
-	gart_liblog.lib.so
+	vfs.lib.so libc.lib.so libm.lib.so stdcxx.lib.so gtest.lib.so
+	gart_liblog.lib.so gart_libbase.lib.so
 	liblog_test
 }
 
