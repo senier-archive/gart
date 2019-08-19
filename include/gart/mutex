@@ -1,6 +1,5 @@
 #pragma once
 
-#include <base/lock_guard.h>
 #include <pthread.h>
 
 namespace std {
@@ -48,12 +47,12 @@ class std::mutex : public _mutex_internal<NORMAL> { };
 class std::recursive_mutex : public _mutex_internal<RECURSIVE> { };
 
 template <class Mutex>
-class std::lock_guard : Genode::Lock_guard<Mutex> {
+class std::lock_guard {
+
+    private:
+        Mutex &_mutex;
 
     public:
-
-        lock_guard (Mutex m)
-        :
-            Genode::Lock_guard<Mutex>(m)
-        { };
+        explicit lock_guard(Mutex &mutex) : _mutex(mutex) { _mutex.lock(); }
+        ~lock_guard() { _mutex.unlock(); }
 };
