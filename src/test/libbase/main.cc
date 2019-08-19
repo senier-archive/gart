@@ -15,18 +15,13 @@ void Libc::Component::construct(Libc::Env &env)
 {
 	Libc::with_libc([&] {
 
+      // FIXME: genodelabs/genode#3476 prevents some tests from running. Retry when fixed.
 		char const *argv[] = {
 			"/bin/test_libbase",
 			"--gtest_filter=-"
-         "logging.LOG_STREAM_FATAL_WITHOUT_ABORT_*"
-         ":logging.LOG_STREAM_*"
-         ":logging.LOG_FATAL_WITHOUT_ABORT_*"
          ":logging.LOG_*_*"
-         ":logging.*LOG_does_not_clobber_errno"
-         ":logging.PLOG_FATAL_WITHOUT_ABORT_*"
          ":logging.PLOG_*_*"
          ":logging.UNIMPLEMENTED"
-         ":logging.SetDefaultTag"
          ":file.WriteStringToFile2"
          ":file.ReadFileToString_capacity",
 			0
@@ -34,7 +29,6 @@ void Libc::Component::construct(Libc::Env &env)
 
 		int argc = 2;
 		setprogname (argv[0]);
-      testing::InitGoogleTest(&argc, (char **)argv);
-      exit(RUN_ALL_TESTS());
+      exit(main(argc, argv));
 	});
 }

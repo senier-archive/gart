@@ -42,7 +42,7 @@ install_config {
 
 	<start name="libbase_test">
 		<resource name="RAM" quantum="128M"/>
-		<config ld_verbose="yes">
+		<config ld_verbose="no">
 			<vfs>
 				<dir name="data"> <dir name="local"> <dir name="tmp"> <ram/> </dir> </dir> </dir>
 				<dir name="dev">
