@@ -44,7 +44,7 @@ cd /gart/tool
 # Update Genode repository and check out sculpt-19.07
 cd ${GENODE_DIR}
 git fetch --all
-git checkout sculpt-19.07
+git checkout componolit/master
 
 # Setup external repos
 git clone -b gtest_base_linux https://github.com/Componolit/genode-world.git ${GENODE_DIR}/repos/world
@@ -55,12 +55,13 @@ create_builddir x86_64 ${GENODE_DIR}
 create_builddir arm_v8a ${GENODE_DIR}
 
 # Prepare ports
-/genode/tool/ports/prepare_port googletest
+/genode/tool/ports/prepare_port googletest gart_core
 
 # Tests to run
 TESTS="
    run/log
    run/gtest
+   run/test/libbase
 "
 
 

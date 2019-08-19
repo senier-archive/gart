@@ -1,0 +1,58 @@
+#pragma once
+
+#include <pthread.h>
+
+namespace std {
+    class mutex;
+    class recursive_mutex;
+    template <class Mutex> class lock_guard;
+}
+
+enum mutex_type { RECURSIVE, NORMAL };
+
+template <mutex_type type>
+class _mutex_internal {
+
+        pthread_mutex_t _mutex;
+
+    public:
+
+        _mutex_internal& operator=(const _mutex_internal& other) = delete;
+        _mutex_internal(const _mutex_internal& mtx) : _mutex (mtx._mutex) { }
+        _mutex_internal() : _mutex(PTHREAD_MUTEX_INITIALIZER) {
+            pthread_mutexattr_t attrs;
+            pthread_mutexattr_init(&attrs);
+            pthread_mutexattr_settype(&attrs, type == RECURSIVE ? PTHREAD_MUTEX_RECURSIVE : PTHREAD_MUTEX_NORMAL);
+            pthread_mutex_init(&_mutex, &attrs);
+            pthread_mutexattr_destroy(&attrs);
+        }
+
+        ~_mutex_internal()
+        {
+            pthread_mutex_destroy (&_mutex);
+        }
+
+        void lock(void)
+        {
+            pthread_mutex_lock (&_mutex);
+        };
+
+        void unlock(void)
+        {
+            pthread_mutex_unlock (&_mutex);
+        };
+};
+
+class std::mutex : public _mutex_internal<NORMAL> { };
+class std::recursive_mutex : public _mutex_internal<RECURSIVE> { };
+
+template <class Mutex>
+class std::lock_guard {
+
+    private:
+        Mutex &_mutex;
+
+    public:
+        explicit lock_guard(Mutex &mutex) : _mutex(mutex) { _mutex.lock(); }
+        ~lock_guard() { _mutex.unlock(); }
+};
