@@ -19,12 +19,18 @@ void Libc::Component::construct(Libc::Env &env)
 		char const *argv[] = {
 			"/bin/test_libbase",
 			"--gtest_filter=-"
-         ":logging.LOG_*_*"
-         ":logging.PLOG_*_*"
-         ":logging.UNIMPLEMENTED"
-         ":file.WriteStringToFile2"
-         ":file.ReadFileToString_capacity",
-			0
+         ":logging.LOG_*_*"                                    // Componolit/Workarounds#4
+         ":logging.PLOG_*_*"                                   // Componolit/Workarounds#4
+         ":logging.UNIMPLEMENTED"                              // Componolit/Workarounds#4
+         ":file.WriteStringToFile2"                            // Testing UNIX permissions, pointless on Genode
+         ":file.ReadFileToString_capacity"                     // When reading a string, the test expects the result to
+                                                               // only have a capacity only slightly larger than the
+                                                               // string (16 bytes). On Genode some exponential
+                                                               // algorithm seems to be in place violating this
+                                                               // assumption (33554432 vs 16789577 bytes). We don't
+                                                               // care for now.
+         ":file.ReadFileToString_WriteStringToFile_symlink"    // Componolit/gart#34
+			,0
 		};
 
 		int argc = 2;
