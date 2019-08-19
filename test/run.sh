@@ -61,6 +61,7 @@ create_builddir arm_v8a ${GENODE_DIR}
 TESTS="
    run/log
    run/gtest
+   run/test/libbase
 "
 
 
