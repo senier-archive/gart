@@ -55,7 +55,7 @@ create_builddir x86_64 ${GENODE_DIR}
 create_builddir arm_v8a ${GENODE_DIR}
 
 # Prepare ports
-/genode/tool/ports/prepare_port googletest
+/genode/tool/ports/prepare_port googletest gart_core
 
 # Tests to run
 TESTS="
