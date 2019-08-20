@@ -53,6 +53,7 @@ ln -sf /gart ${GENODE_DIR}/repos/gart
 # Set up build dir
 create_builddir x86_64 ${GENODE_DIR}
 create_builddir arm_v8a ${GENODE_DIR}
+create_builddir arm_v7a ${GENODE_DIR}
 
 # Prepare ports
 /genode/tool/ports/prepare_port googletest gart_core
@@ -62,9 +63,11 @@ TESTS="
    run/log
    run/gtest
    run/test/libbase
+   run/test/liblog
 "
 
 
 make -C /genode_build/x86_64 ${TESTS} KERNEL=linux BOARD=linux EXT_RUN_OPT="--include power_on/linux --include log/linux"
 make -C /genode_build/x86_64 ${TESTS} KERNEL=nova BOARD=pc EXT_RUN_OPT="--include power_on/qemu --include log/qemu --include image/iso"
 make -C /genode_build/arm_v8a ${TESTS} KERNEL=foc BOARD=rpi3 EXT_RUN_OPT="--include power_on/qemu --include log/qemu"
+make -C /genode_build/arm_v7a ${TESTS} KERNEL=foc BOARD=pbxa9 EXT_RUN_OPT="--include power_on/qemu --include log/qemu"
