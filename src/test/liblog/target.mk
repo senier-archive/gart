@@ -5,9 +5,7 @@ SRC_CC = \
 	libc_test.cpp \
 	liblog_test_stderr.cpp \
 	log_id_test.cpp \
-	log_radio_test.cpp \
 	log_read_test.cpp \
-	log_system_test.cpp \
 	log_time_test.cpp
 
 CC_OPT += -g -Wall -Werror -fno-builtin -D__GENODE__ -D__ANDROID__
