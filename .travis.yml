@@ -1,9 +1,10 @@
 sudo: required
 
 language: c
+cache: ccache
 
 services:
     - docker
 
 script:
-    - docker run -v $PWD:/gart -t jklmnn/componolit-ci /gart/test/run.sh
+    - docker run -v $PWD:/gart -v $HOME/.ccache:/ccache -t jklmnn/componolit-ci /gart/test/run.sh

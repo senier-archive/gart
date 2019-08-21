@@ -13,6 +13,11 @@ mkdir -p /genode_build/${ARCH}/etc
 ln -sf ${GD}/tool/builddir/build.mk /genode_build/${ARCH}/Makefile
 echo "SPECS += ${ARCH}" > /genode_build/${ARCH}/etc/specs.conf
 
+cat << EOF > /genode_build/${ARCH}/etc/tools.conf
+CUSTOM_CC  = ccache \$(CROSS_DEV_PREFIX)gcc
+CUSTOM_CXX = ccache \$(CROSS_DEV_PREFIX)g++
+EOF
+
 cat << EOF > /genode_build/${ARCH}/etc/build.conf
 GENODE_DIR := ${GD}
 BASE_DIR := ${GD}/repos/base
@@ -32,10 +37,11 @@ EOF
 }
 
 GENODE_DIR=/genode
+export CCACHE_DIR=/ccache
 
 # Install pyparsing
 apt update
-apt -y install python3-pyparsing xorriso qemu-system
+apt -y install python3-pyparsing xorriso qemu-system ccache
 
 # Test gnoos
 cd /gart/tool
