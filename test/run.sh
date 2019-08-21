@@ -41,10 +41,10 @@ apt -y install python3-pyparsing xorriso qemu-system
 cd /gart/tool
 ./gnoos --test
 
-# Update Genode repository and check out sculpt-19.07
+# Update Genode repository and check out componolit/gart branch
 cd ${GENODE_DIR}
 git fetch --all
-git checkout componolit/master
+git checkout componolit/gart
 
 # Setup external repos
 git clone -b gtest_base_linux https://github.com/Componolit/genode-world.git ${GENODE_DIR}/repos/world
