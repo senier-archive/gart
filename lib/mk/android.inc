@@ -15,25 +15,20 @@ check_android_vars := $(call _assert,$(ANDROID_PORTDIR), Port $(ANDROID_PORT) no
 
 ANDROID_BASEDIR		= $(ANDROID_PORTDIR)/$(ANDROID_DIR)
 
+internal_android_arch = \
+   $(if $(filter $(SPECS), x86_32),x86, \
+      $(if $(filter $(SPECS), x86_64),x86_64, \
+         $(if $(filter $(SPECS), arm_v7a),arm, \
+            $(if $(filter $(SPECS), arm_v8a),arm64, \
+               $(if $(filter $(SPECS), linux),x86_64, \
+                  $(if $(filter $(SPECS), arm_v6), $(error arm_v6 unsupported on Android), \
+                     $(if $(filter $(SPECS), riscv), $(error RISCV unsupported on Android), \
+                        $(error Unsupported architecture))))))))
+
+android_arch = $(strip $(call internal_android_arch))
+
 # Set Android-compatible architecture
-ifeq ($(filter-out $(SPECS),x86_32),)
-ANDROID_ARCH = x86
-else ifeq ($(filter-out $(SPECS),x86_64),)
-ANDROID_ARCH = x86_64
-else ifeq ($(filter-out $(SPECS),arm_v7a),)
-ANDROID_ARCH = arm
-else ifeq ($(filter-out $(SPECS),arm_v8a),)
-ANDROID_ARCH = arm64
-else ifeq ($(filter-out $(SPECS),linux),)
-# Assume x86_64 for base-linux
-ANDROID_ARCH = x86_64
-else ifeq ($(filter-out $(SPECS),arm_v6),)
-$(error Unsupported architecture: arm_v6)
-else ifeq ($(filter-out $(SPECS),riscv),)
-$(error Unsupported architecture: riscv)
-else
-$(error Configuration error (could not determine architecture))
-endif
+ANDROID_ARCH = $(call android_arch)
 
 COMMAND := \
 	mkdir -p $(dir $(ANDROID_OUTPUT)) && \
