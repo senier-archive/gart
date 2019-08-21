@@ -5,4 +5,7 @@
 
 #define ENODATA 61
 
+// Dummy, no correspondence in Genode's libc
+#define EREMOTEIO 200
+
 #endif // !__GART_ERRNO_H__
