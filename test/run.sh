@@ -64,6 +64,7 @@ TESTS="
    run/gtest
    run/test/libbase
    run/test/liblog
+   run/test/libmetricslogger
 "
 
 
