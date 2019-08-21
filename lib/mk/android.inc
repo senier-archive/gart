@@ -67,8 +67,16 @@ INC_DIR := $(REP_DIR)/include/gart $(INC_DIR) $(addprefix $(ANDROID_BASEDIR)/,$(
 vpath % $(addprefix $(ANDROID_BASEDIR)/,$(ANDROID_SOURCES))
 
 # Include these libraries by default
+ANDROID_LIBS = \
+   $($(ANDROID_NAME)_SHARED_LIBS) \
+   $($(ANDROID_NAME)_STATIC_LIBS) \
+   $($(ANDROID_NAME)_WHOLE_STATIC_LIBS)
+
+# Filter out debug libraries
+NON_DEBUG_LIBS = $(sort $(ANDROID_LIBS:_debug=))
+
 LIBS += libc cxx stdcxx
-LIBS += $(addprefix gart_,$(filter-out $(ANDROID_EXCLUDE_LIBS),$($(ANDROID_NAME)_SHARED_LIBS) $($(ANDROID_NAME)_STATIC_LIBS)))
+LIBS += $(addprefix gart_,$(filter-out $(ANDROID_EXCLUDE_LIBS),$(NON_DEBUG_LIBS)))
 
 else
 $(error ANDROID_NAME not set)
