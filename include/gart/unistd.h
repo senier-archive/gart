@@ -11,4 +11,16 @@ static pid_t gettid(void) { return getpid(); };
 #include <sys/param.h>
 #include <sys/limits.h>
 
+#undef ALIGN
+
+// Not available on Genode
+#ifndef TEMP_FAILURE_RETRY
+#define TEMP_FAILURE_RETRY(exp) ({         \
+    typeof (exp) _rc;                      \
+    do {                                   \
+        _rc = (exp);                       \
+    } while (_rc == -1 && errno == EINTR); \
+    _rc; })
+#endif
+
 #endif // !__GART_UNISTD_H__
