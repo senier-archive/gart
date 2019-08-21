@@ -10,3 +10,5 @@ SRC_CC				+= ashmem-genode.cpp iosched_policy-genode.cpp sched_policy-genode.cpp
 
 include $(call select_from_repositories,lib/mk/android-lib.inc)
 VPATH += $(REP_DIR)/src/libcutils
+
+CC_OPT_multiuser = -Wno-type-limits
