@@ -73,11 +73,12 @@ install_config {
 			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" rng="/dev/random" socket="/socket"/>
          <start name="/bin/libcutils_test">
             <!-- PropertiesTest: disable tests for mocked properties API -->
-            <!-- SocketsTest.TestIpv6*: IPv6 is unsupported -->
-            <!-- SocketsTest.TestIpv4UdpLoopback: loopback non-functional -->
+            <!-- SocketsTest.TestIpv4UdpLoopback: loopback non-functional, ref. #38 -->
+            <!-- SocketsTest.TestIpv4TcpLoopback: loopback non-functional, ref. #38 -->
             <!-- SocketsTest.TestUdpReceiveTimeout: Receive timeout unsupported -->
             <!-- SocketsTest.TestTcpReceiveTimeout: Receive timeout unsupported -->
             <!-- SocketsTest.android_get_control_socket: Unsupported -->
+            <!-- SocketsTest.TestIpv6*: IPv6 is unsupported -->
             <arg value="--gtest_filter=-PropertiesTest.*:SocketsTest.TestIpv4UdpLoopback:SocketsTest.TestIpv4TcpLoopback::SocketsTest.TestIpv6*:SocketsTest.TestUdpReceiveTimeout:SocketsTest.TestTcpReceiveTimeout:SocketsTest.android_get_control_socket"/>
          </start>
 		</config>
