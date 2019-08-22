@@ -1,0 +1,109 @@
+#
+# Build
+#
+
+set build_components {
+	core init timer
+   lib/vfs/lwip
+   server/nic_router
+	test/libcutils
+}
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
+build $build_components
+create_boot_directory
+
+#
+# Generate config
+#
+
+install_config {
+<config verbose="yes">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="CAP"/>
+		<service name="RM"/>
+		<service name="PD"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+		<service name="IO_PORT"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<default caps="1000"/>
+
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>
+
+   <start name="nic_router">
+      <resource name="RAM" quantum="10M"/>
+      <provides><service name="Nic"/></provides>
+      <config verbose="yes" verbose_packets="yes">
+         <domain name="default" interface="10.0.0.256/8"/>
+         <default-policy domain="default"/>
+      </config>
+   </start>
+
+	<start name="libcutils_test">
+		<resource name="RAM" quantum="32M"/>
+		<config ld_verbose="yes" ld_bind_now="no">
+			<vfs>
+				<dir name="system">
+				   <dir name="etc">
+                  <inline name="event-log-tags"># dummy</inline>
+               </dir>
+            </dir>
+				<dir name="socket">
+               <lwip ip_addr="127.0.0.1" netmask="255.0.0.0" gateway="0.0.0.0" />
+            </dir>
+				<dir name="data"> <dir name="local"> <dir name="tmp"> <ram/> </dir> </dir> </dir>
+				<dir name="dev">
+               <log/>
+               <inline name="rtc">2018-01-01 00:01</inline>
+               <inline name="random">3d32200c56d42fac0ed8dada9d9b33e7</inline>
+            </dir>
+			</vfs>
+			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" rng="/dev/random" socket="/socket"/>
+         <start name="/bin/libcutils_test">
+            <!-- PropertiesTest: disable tests for mocked properties API -->
+            <!-- SocketsTest.TestIpv6*: IPv6 is unsupported -->
+            <!-- SocketsTest.TestIpv4UdpLoopback: loopback non-functional -->
+            <!-- SocketsTest.TestUdpReceiveTimeout: Receive timeout unsupported -->
+            <!-- SocketsTest.TestTcpReceiveTimeout: Receive timeout unsupported -->
+            <!-- SocketsTest.android_get_control_socket: Unsupported -->
+            <arg value="--gtest_filter=-PropertiesTest.*:SocketsTest.TestIpv4UdpLoopback:SocketsTest.TestIpv4TcpLoopback::SocketsTest.TestIpv6*:SocketsTest.TestUdpReceiveTimeout:SocketsTest.TestTcpReceiveTimeout:SocketsTest.android_get_control_socket"/>
+         </start>
+		</config>
+      <route>
+         <service name="Nic"> <child name="nic_router"/> </service>
+         <any-service> <parent/> <any-child/> </any-service>
+      </route>
+	</start>
+</config>}
+
+#
+# Boot image
+#
+
+# generic modules
+set boot_modules {
+	core init timer ld.lib.so
+	vfs.lib.so libc.lib.so libm.lib.so stdcxx.lib.so gtest.lib.so
+   gart_liblog.lib.so gart_libbase.lib.so gart_libcutils.lib.so
+   lwip.lib.so vfs_lwip.lib.so
+   nic_router
+	libcutils_test
+}
+
+append_platform_drv_boot_modules
+build_boot_image $boot_modules
+
+append qemu_args " -m 512 -nographic "
+run_genode_until {.*child "libcutils_test" exited with exit value 0} 10000

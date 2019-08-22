@@ -5,22 +5,33 @@ ANDROID_SECTIONS	= \
 	/cc_library[@name=libcutils]/target/android \
 	/cc_library[@name=libcutils]/target/android_$(call android_arch)
 
-ANDROID_EXCLUDE_CC = \
-	ashmem-dev.cpp \
-	iosched_policy.cpp \
-	sched_policy.cpp \
-	sockets_unix.cpp \
-	uevent.cpp \
+# Mocked interfaces
+ANDROID_EXCLUDE_CC += ashmem-dev.cpp
+SRC_CC += ashmem-genode.cpp
 
-SRC_CC += \
-	ashmem-genode.cpp \
-	iosched_policy-genode.cpp \
-	sched_policy-genode.cpp \
-	sockets_genode.cpp \
-	uevent_genode.cpp \
+ANDROID_EXCLUDE_CC += iosched_policy.cpp
+SRC_CC += iosched_policy-genode.cpp
+
+ANDROID_EXCLUDE_CC += sched_policy.cpp
+SRC_CC += sched_policy-genode.cpp
+
+ANDROID_EXCLUDE_CC += uevent.cpp
+SRC_CC += uevent_genode.cpp
+
+# Genode-specific socket support
+ANDROID_EXCLUDE_CC += sockets_unix.cpp
+SRC_CC += sockets_genode.cpp
+
+# The provided implementation uses IPv6 which is unsupported by Genode. Use IPv4 version.
+ANDROID_EXCLUDE_CC += socket_inaddr_any_server_unix.cpp
+SRC_CC += socket_inaddr_any_server_genode.cpp
 
 include $(call select_from_repositories,lib/mk/android-lib.inc)
 VPATH += $(REP_DIR)/src/libcutils
 
 CC_OPT_multiuser = -Wno-type-limits
 CC_OPT_str_parms = -Wno-missing-field-initializers
+
+# Pretend we're building for apple, as this removes fs_mkdirs from the source
+# whieh uses mkdirat() which is unavailable on Genode (and Apple ;)
+CC_OPT_fs		  = -D__APPLE__
