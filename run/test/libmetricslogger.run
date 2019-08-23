@@ -69,7 +69,7 @@ install_config {
 # generic modules
 set boot_modules {
 	core init timer ld.lib.so
-	vfs.lib.so libc.lib.so libm.lib.so stdcxx.lib.so
+	vfs.lib.so libc.lib.so libm.lib.so stdcxx.lib.so gtest.lib.so
    gart_liblog.lib.so gart_libbase.lib.so gart_libmetricslogger.lib.so
 	libmetricslogger_test
 }
