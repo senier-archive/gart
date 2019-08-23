@@ -1,0 +1,74 @@
+#
+# Build
+#
+
+set build_components {
+	core init timer
+	test/libz
+}
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
+build $build_components
+create_boot_directory
+
+#
+# Generate config
+#
+
+install_config {
+<config verbose="yes">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="CAP"/>
+		<service name="RM"/>
+		<service name="PD"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+		<service name="IO_PORT"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<default caps="1000"/>
+
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>
+
+	<start name="libz_test">
+		<resource name="RAM" quantum="8M"/>
+		<config ld_verbose="no" ld_bind_now="no">
+			<vfs>
+				<dir name="dev">
+               <log/>
+               <inline name="rtc">2018-01-01 00:01</inline>
+               <inline name="random">3d32200c56d42fac0ed8dada9d9b33e7</inline>
+            </dir>
+			</vfs>
+			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" rng="/dev/random"/>
+         <start name="/bin/libz_test"/>
+		</config>
+	</start>
+</config>}
+
+#
+# Boot image
+#
+
+# generic modules
+set boot_modules {
+	core init timer ld.lib.so
+	vfs.lib.so libc.lib.so libm.lib.so stdcxx.lib.so gart_libz.lib.so
+	libz_test
+}
+
+append_platform_drv_boot_modules
+build_boot_image $boot_modules
+
+append qemu_args " -m 512 -nographic "
+run_genode_until {.*child "libz_test" exited with exit value 0} 10000
