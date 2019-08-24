@@ -98,7 +98,7 @@ set boot_modules {
 	core init timer ld.lib.so
 	vfs.lib.so libc.lib.so libm.lib.so stdcxx.lib.so gtest.lib.so
    gart_liblog.lib.so gart_libbase.lib.so gart_libcutils.lib.so
-   lwip.lib.so vfs_lwip.lib.so
+   vfs_lwip.lib.so
    nic_router
 	libcutils_test
 }
@@ -107,4 +107,4 @@ append_platform_drv_boot_modules
 build_boot_image $boot_modules
 
 append qemu_args " -m 512 -nographic "
-run_genode_until {.*child "libcutils_test" exited with exit value 0} 10000
+run_genode_until {.*child "libcutils_test" exited with exit value 0} 120

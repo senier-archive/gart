@@ -72,4 +72,4 @@ append_platform_drv_boot_modules
 build_boot_image $boot_modules
 
 append qemu_args " -m 512 -nographic "
-run_genode_until {.*child "liblog_test" exited with exit value 0} 100
+run_genode_until {.*child "liblog_test" exited with exit value 0} 120

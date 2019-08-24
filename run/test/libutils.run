@@ -63,8 +63,10 @@ install_config {
                      UnicodeTest.InvalidUtf8OverreadDetected
                   mprotect() is unsupported:
                      UnicodeTest.strstr16EmptyTarget_bug
+                  No RTC in CI:
+                     SystemClock.SystemClock
             -->
-            <arg value="--gtest_filter=-VectorTest.SetCapacity_Overflow:VectorTest._grow_OverflowSize:VectorTest._grow_OverflowCapacityDoubling:VectorTest._grow_OverflowBufferAlloc:UnicodeTest.InvalidUtf8OverreadDetected:UnicodeTest.strstr16EmptyTarget_bug"/>
+            <arg value="--gtest_filter=-VectorTest.SetCapacity_Overflow:VectorTest._grow_OverflowSize:VectorTest._grow_OverflowCapacityDoubling:VectorTest._grow_OverflowBufferAlloc:UnicodeTest.InvalidUtf8OverreadDetected:UnicodeTest.strstr16EmptyTarget_bug:SystemClock.SystemClock"/>
          </start>
 		</config>
       <route>
@@ -92,4 +94,4 @@ append_platform_drv_boot_modules
 build_boot_image $boot_modules
 
 append qemu_args " -m 512 -nographic "
-run_genode_until {.*child "libutils_test" exited with exit value 0} 10000
+run_genode_until {.*child "libutils_test" exited with exit value 0} 120
