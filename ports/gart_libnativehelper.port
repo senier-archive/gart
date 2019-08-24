@@ -1,0 +1,7 @@
+LICENSE   := Apache_2.0
+VERSION   := git
+DOWNLOADS := gart_libnativehelper.git
+
+URL(gart_libnativehelper) := https://android.googlesource.com/platform/libnativehelper
+DIR(gart_libnativehelper) := libnativehelper
+REV(gart_libnativehelper) := android-9.0.0_r45
