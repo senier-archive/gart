@@ -30,6 +30,11 @@ void Libc::Component::construct(Libc::Env &env)
                                                                // assumption (33554432 vs 16789577 bytes). We don't
                                                                // care for now.
          ":file.ReadFileToString_WriteStringToFile_symlink"    // Componolit/gart#34
+         ":file.ReadFileToString_WriteStringToFile_symlink"    // Componolit/gart#34
+         ":logging.CHECK"                                      // Death test unsupported
+         ":logging.DCHECK"                                     // Death test unsupported
+         ":logging.LOG_FATAL"                                  // Death test unsupported
+         ":logging.PLOG_FATAL"                                 // Death test unsupported
 			,0
 		};
 
