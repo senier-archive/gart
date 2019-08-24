@@ -7,7 +7,7 @@ services:
     - docker
 
 script:
-    - docker run -v $PWD:/gart -v $HOME/.ccache:/ccache -t jklmnn/componolit-ci /gart/test/run.sh x86_64 linux linux "--include power_on/linux --include log/linux"
-    - docker run -v $PWD:/gart -v $HOME/.ccache:/ccache -t jklmnn/componolit-ci /gart/test/run.sh x86_64 nova pc "--include power_on/qemu --include log/qemu --include image/iso"
-    - docker run -v $PWD:/gart -v $HOME/.ccache:/ccache -t jklmnn/componolit-ci /gart/test/run.sh arm_v8a foc rpi3 "--include power_on/qemu --include log/qemu"
-    - docker run -v $PWD:/gart -v $HOME/.ccache:/ccache -t jklmnn/componolit-ci /gart/test/run.sh arm_v7a foc pbxa9 "--include power_on/qemu --include log/qemu"
+    - docker run -v $PWD:/gart -v $HOME/.ccache:/ccache -t jklmnn/componolit-ci:latest-genode /gart/test/run.sh x86_64 linux linux "--include power_on/linux --include log/linux"
+    - docker run -v $PWD:/gart -v $HOME/.ccache:/ccache -t jklmnn/componolit-ci:latest-genode /gart/test/run.sh x86_64 nova pc "--include power_on/qemu --include log/qemu --include image/iso"
+    - docker run -v $PWD:/gart -v $HOME/.ccache:/ccache -t jklmnn/componolit-ci:latest-genode /gart/test/run.sh arm_v8a foc rpi3 "--include power_on/qemu --include log/qemu"
+    - docker run -v $PWD:/gart -v $HOME/.ccache:/ccache -t jklmnn/componolit-ci:latest-genode /gart/test/run.sh arm_v7a foc pbxa9 "--include power_on/qemu --include log/qemu"
