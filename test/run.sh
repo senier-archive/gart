@@ -15,6 +15,7 @@ TESTS="
    run/test/libz
    run/test/libcutils
    run/test/libutils
+   run/test/jni_invocation
 "
 
 env
