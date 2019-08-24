@@ -1,5 +1,10 @@
 #!/bin/sh -eu
 
+CI_ARCH=$1
+CI_KERNEL=$2
+CI_BOARD=$3
+CI_OPTS=$4
+
 create_builddir()
 {
 
@@ -57,9 +62,7 @@ git clone -b gtest_base_linux https://github.com/Componolit/genode-world.git ${G
 ln -sf /gart ${GENODE_DIR}/repos/gart
 
 # Set up build dir
-create_builddir x86_64 ${GENODE_DIR}
-create_builddir arm_v8a ${GENODE_DIR}
-create_builddir arm_v7a ${GENODE_DIR}
+create_builddir ${CI_ARCH} ${GENODE_DIR}
 
 # Prepare ports
 /genode/tool/ports/prepare_port googletest gart_core
@@ -71,10 +74,10 @@ TESTS="
    run/test/libbase
    run/test/liblog
    run/test/libmetricslogger
+   run/test/libz
+   run/test/libcutils
+   run/test/libutils
 "
 
 
-make -C /genode_build/x86_64 ${TESTS} KERNEL=linux BOARD=linux EXT_RUN_OPT="--include power_on/linux --include log/linux"
-make -C /genode_build/x86_64 ${TESTS} KERNEL=nova BOARD=pc EXT_RUN_OPT="--include power_on/qemu --include log/qemu --include image/iso"
-make -C /genode_build/arm_v8a ${TESTS} KERNEL=foc BOARD=rpi3 EXT_RUN_OPT="--include power_on/qemu --include log/qemu"
-make -C /genode_build/arm_v7a ${TESTS} KERNEL=foc BOARD=pbxa9 EXT_RUN_OPT="--include power_on/qemu --include log/qemu"
+make -C /genode_build/x86_64 ${TESTS} KERNEL=${CI_KERNEL} BOARD=${CI_BOARD} EXT_RUN_OPT="${CI_OPTS}"
