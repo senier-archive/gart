@@ -6,8 +6,11 @@ cache: ccache
 services:
     - docker
 
+env:
+   - CI_ARCH=x86_64 CI_KERNEL=linux CI_BOARD=linux CI_OPTS="--include power_on/linux --include log/linux"
+   - CI_ARCH=x86_64 CI_KERNEL=nova CI_BOARD=pc CI_OPTS="--include power_on/qemu --include log/qemu --include image/iso"
+   - CI_ARCH=arm_v8a CI_KERNEL=foc CI_BOARD=rpi3 CI_OPTS="--include power_on/qemu --include log/qemu"
+   - CI_ARCH=arm_v7a CI_KERNEL=foc CI_BOARD=pbxa9 CI_OPTS="--include power_on/qemu --include log/qemu"
+
 script:
-    - docker run -v $PWD:/gart -v $HOME/.ccache:/ccache -t jklmnn/componolit-ci:latest-genode /gart/test/run.sh x86_64 linux linux "--include power_on/linux --include log/linux"
-    - docker run -v $PWD:/gart -v $HOME/.ccache:/ccache -t jklmnn/componolit-ci:latest-genode /gart/test/run.sh x86_64 nova pc "--include power_on/qemu --include log/qemu --include image/iso"
-    - docker run -v $PWD:/gart -v $HOME/.ccache:/ccache -t jklmnn/componolit-ci:latest-genode /gart/test/run.sh arm_v8a foc rpi3 "--include power_on/qemu --include log/qemu"
-    - docker run -v $PWD:/gart -v $HOME/.ccache:/ccache -t jklmnn/componolit-ci:latest-genode /gart/test/run.sh arm_v7a foc pbxa9 "--include power_on/qemu --include log/qemu"
+    - docker run -v $PWD:/gart -v $HOME/.ccache:/ccache -t jklmnn/componolit-ci:latest-genode /gart/test/run.sh "$CI_ARCH" "$CI_KERNEL" "$CI_BOARD" "$CI_OPTS"

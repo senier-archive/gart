@@ -5,6 +5,28 @@ CI_KERNEL=$2
 CI_BOARD=$3
 CI_OPTS=$4
 
+# Tests to run
+TESTS="
+   run/log
+   run/gtest
+   run/test/libbase
+   run/test/liblog
+   run/test/libmetricslogger
+   run/test/libz
+   run/test/libcutils
+   run/test/libutils
+"
+
+env
+
+echo "==========================================="
+echo " KERNEL: ${CI_KERNEL}"
+echo " BOARD:  ${CI_BOARD}"
+echo " ARCH:   ${CI_ARCH}"
+echo " OPTS:   ${CI_OPTS}"
+echo " TESTS:  ${TESTS}"
+echo "==========================================="
+
 create_builddir()
 {
 
@@ -65,19 +87,11 @@ ln -sf /gart ${GENODE_DIR}/repos/gart
 create_builddir ${CI_ARCH} ${GENODE_DIR}
 
 # Prepare ports
-/genode/tool/ports/prepare_port googletest gart_core
+/genode/tool/ports/prepare_port googletest gart_core gart_libz
 
-# Tests to run
-TESTS="
-   run/log
-   run/gtest
-   run/test/libbase
-   run/test/liblog
-   run/test/libmetricslogger
-   run/test/libz
-   run/test/libcutils
-   run/test/libutils
-"
+if [ x${CI_KERNEL} = "xnova" ];
+then
+   /genode/tool/ports/prepare_port nova
+fi
 
-
-make -C /genode_build/x86_64 ${TESTS} KERNEL=${CI_KERNEL} BOARD=${CI_BOARD} EXT_RUN_OPT="${CI_OPTS}"
+make -C /genode_build/${CI_ARCH} ${TESTS} KERNEL=${CI_KERNEL} BOARD=${CI_BOARD} EXT_RUN_OPT="${CI_OPTS}"
