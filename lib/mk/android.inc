@@ -62,7 +62,7 @@ INC_DIR := $(REP_DIR)/include/gart $(INC_DIR) $(addprefix $(ANDROID_BASEDIR)/,$(
 vpath % $(addprefix $(ANDROID_BASEDIR)/,$(ANDROID_SOURCES))
 
 # Include these libraries by default
-ANDROID_LIBS = \
+ANDROID_LIBS += \
    $($(ANDROID_NAME)_SHARED_LIBS) \
    $($(ANDROID_NAME)_STATIC_LIBS) \
    $($(ANDROID_NAME)_WHOLE_STATIC_LIBS)
