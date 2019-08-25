@@ -35,6 +35,7 @@ TESTS="
    run/test/libnativebridge/ReSetupNativeBridge
    run/test/libnativebridge/UnavailableNativeBridge
    run/test/libnativebridge/ValidNameNativeBridge
+   run/test/liblz4
 "
 
 env
@@ -107,7 +108,7 @@ ln -sf /gart ${GENODE_DIR}/repos/gart
 create_builddir ${CI_ARCH} ${GENODE_DIR}
 
 # Prepare ports
-/genode/tool/ports/prepare_port googletest gart_core gart_libz gart_libnativehelper
+/genode/tool/ports/prepare_port googletest gart_core gart_libz gart_libnativehelper gart_liblz4
 
 if [ x${CI_KERNEL} = "xnova" ];
 then
