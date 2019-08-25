@@ -1,0 +1,29 @@
+source ${genode_dir}/repos/gart/run/test/libnativebridge/variables.inc
+
+append build_components {
+	test/libnativebridge/PreInitializeNativeBridgeFail1
+}
+
+append config {
+	<start name="test_PreInitializeNativeBridgeFail1">
+		<resource name="RAM" quantum="4M"/>
+		<config>
+			<vfs>
+				<dir name="tmp"> <ram/> </dir>
+				<dir name="dev">
+               <log/>
+               <inline name="rtc">2018-01-01 00:01</inline>
+            </dir>
+			</vfs>
+			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" />
+		</config>
+	</start>
+}
+
+append boot_modules {
+	test_PreInitializeNativeBridgeFail1
+}
+
+source ${genode_dir}/repos/gart/run/test/libnativebridge/build.inc
+
+run_genode_until {.*child "test_PreInitializeNativeBridgeFail1" exited with exit value 0} $timeout

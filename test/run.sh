@@ -16,6 +16,25 @@ TESTS="
    run/test/libcutils
    run/test/libutils
    run/test/jni_invocation
+   run/test/libnativebridge/CodeCacheCreate
+   run/test/libnativebridge/CodeCacheExists
+   run/test/libnativebridge/CodeCacheStatFail
+   run/test/libnativebridge/CompleteFlow
+   run/test/libnativebridge/InvalidCharsNativeBridge
+   run/test/libnativebridge/NativeBridge3CreateNamespace
+   run/test/libnativebridge/NativeBridge3GetError
+   run/test/libnativebridge/NativeBridge3InitAnonymousNamespace
+   run/test/libnativebridge/NativeBridge3IsPathSupported
+   run/test/libnativebridge/NativeBridge3LoadLibraryExt
+   run/test/libnativebridge/NativeBridge3UnloadLibrary
+   run/test/libnativebridge/NativeBridgeVersion
+   run/test/libnativebridge/NeedsNativeBridge
+   run/test/libnativebridge/PreInitializeNativeBridgeFail1
+   run/test/libnativebridge/PreInitializeNativeBridgeFail2
+   run/test/libnativebridge/PreInitializeNativeBridge
+   run/test/libnativebridge/ReSetupNativeBridge
+   run/test/libnativebridge/UnavailableNativeBridge
+   run/test/libnativebridge/ValidNameNativeBridge
 "
 
 env
