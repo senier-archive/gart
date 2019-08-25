@@ -35,8 +35,12 @@ TESTS="
    run/test/libnativebridge/ReSetupNativeBridge
    run/test/libnativebridge/UnavailableNativeBridge
    run/test/libnativebridge/ValidNameNativeBridge
-   run/test/liblz4
 "
+
+if [ ${CI_ARCH} != "arm_v7a" ];
+then
+   TESTS="${TESTS} run/test/liblz4"
+fi
 
 env
 
