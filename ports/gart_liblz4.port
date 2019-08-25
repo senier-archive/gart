@@ -1,0 +1,7 @@
+LICENSE   := Apache_2.0
+VERSION   := git
+DOWNLOADS := gart_liblz4.git
+
+URL(gart_liblz4) := https://android.googlesource.com/platform/external/lz4
+DIR(gart_liblz4) := lz4
+REV(gart_liblz4) := android-9.0.0_r45
