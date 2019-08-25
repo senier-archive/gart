@@ -62,7 +62,7 @@ install_config {
 # generic modules
 set boot_modules {
 	core init ld.lib.so vfs.lib.so
-	timer ram_fs
+	timer
 	libc.lib.so libm.lib.so stdcxx.lib.so
 	gart_liblz4.lib.so
 	liblz4_test
