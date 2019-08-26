@@ -1,0 +1,4 @@
+#pragma once
+
+#include_next <string>
+#include <string.h>
