@@ -13,7 +13,10 @@ static pid_t gettid(void) { return getpid(); };
 
 #undef ALIGN
 
+//
 // Not available on Genode
+//
+
 #ifndef TEMP_FAILURE_RETRY
 #define TEMP_FAILURE_RETRY(exp) ({         \
     typeof (exp) _rc;                      \
@@ -22,5 +25,7 @@ static pid_t gettid(void) { return getpid(); };
     } while (_rc == -1 && errno == EINTR); \
     _rc; })
 #endif
+
+#define lseek64(fd, off, whence) lseek(fd, off, whence)
 
 #endif // !__GART_UNISTD_H__
