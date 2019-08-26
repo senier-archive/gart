@@ -36,4 +36,7 @@ LIBS += gart_libnativehelper
 # Build ART for Android
 CC_OPT += -DART_TARGET_ANDROID
 
+# Disable some logging macros to ensure constexpr can be used (cf. include/gart/android-base/logging.h)
+CC_OPT += -DART_LOG_CONSTEXPR_HACK
+
 include $(call select_from_repositories,lib/mk/android-lib.inc)
