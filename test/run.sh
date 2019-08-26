@@ -35,6 +35,7 @@ TESTS="
    run/test/libnativebridge/ReSetupNativeBridge
    run/test/libnativebridge/UnavailableNativeBridge
    run/test/libnativebridge/ValidNameNativeBridge
+   run/test/libziparchive
 "
 
 if [ ${CI_ARCH} != "arm_v7a" ];
