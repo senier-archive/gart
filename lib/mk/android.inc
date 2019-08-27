@@ -36,13 +36,12 @@ COMMAND := \
 		--basedir $(ANDROID_BASEDIR) \
 		--prefix $(ANDROID_NAME)_ \
 		--output $(ANDROID_OUTPUT) \
+		--variable "BASEDIR:$(ANDROID_BASEDIR)" \
+		--variable "EXPORT_INCLUDE_DIRS:$(ANDROID_INCLUDES)" \
 		$(addprefix --input ,$(ANDROID_BUILDFILES)) \
-		$(ANDROID_SECTIONS) && \
-	echo "$(ANDROID_NAME)_BASEDIR = $(ANDROID_BASEDIR)" >> $(ANDROID_OUTPUT) && \
-	echo "$(ANDROID_NAME)_EXPORT_INCLUDE_DIRS += $(ANDROID_INCLUDES)" >> $(ANDROID_OUTPUT)
+		$(ANDROID_SECTIONS)
 
 DUMMY := $(shell $(COMMAND))
-
 include $(ANDROID_OUTPUT)
 
 SRC_C  += $(filter-out $(ANDROID_EXCLUDE_C),$(filter %.c,$($(ANDROID_NAME)_SRCS)))

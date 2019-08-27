@@ -329,9 +329,9 @@ class Soong:
         for sec in self.data():
             self.resolve_default(sec[1])
 
-def make_vars(data, prefix=''):
+def make_vars(data, query, prefix='', variables=None):
 
-    result = ""
+    result = "# {}\n".format(query)
 
     secdata = data[1]
     for elem in sorted(secdata):
@@ -351,6 +351,11 @@ def make_vars(data, prefix=''):
             pass
         else:
             raise Exception("Cannot convert element type '" + str(secdata_type) + "'")
+
+    if variables:
+        for variable in variables:
+            name, data = variable.split(':')
+            result += '%s%s += %s\n' % (prefix, name.upper(), data)
 
     return result
 
@@ -388,9 +393,9 @@ class TestSoong(unittest.TestCase):
         query = self.query(filename, querytext)
         self.assertEqual(query, data, self.fullpath(filename))
 
-    def assert_mk(self, filename, querytext, data, prefix=''):
+    def assert_mk(self, filename, querytext, variables, data, prefix=''):
         query = self.query(filename, querytext)
-        self.assertEqual(make_vars(query, prefix), data, self.fullpath(filename))
+        self.assertEqual(make_vars(query, "HEADER", prefix, variables), data, self.fullpath(filename))
 
     def test_001(self):
         """
@@ -846,14 +851,21 @@ class TestSoong(unittest.TestCase):
         """
         Represent a section as make fragment
         """
-        self.assert_mk("052_query_recursive_subsect_merge", '/section_2',
-                       'ELEM5 = data7\nNAME = sec2\n')
+        self.assert_mk("052_query_recursive_subsect_merge", '/section_2', None,
+                       '# HEADER\nELEM5 = data7\nNAME = sec2\n')
+
+    def test_052b(self):
+        """
+        Make fragment with additional variables
+        """
+        self.assert_mk("052_query_recursive_subsect_merge", '/section_2', ['EXT:sec3'],
+                       '# HEADER\nELEM5 = data7\nNAME = sec2\nEXT += sec3\n')
 
     def test_053(self):
         """
         Check conversion of lists to make variable
         """
-        self.assert_mk("053_mk_list", '/section_1', 'ELEM1 = data1 data2 data3\nELEM2 = True\n')
+        self.assert_mk("053_mk_list", '/section_1', None, '# HEADER\nELEM1 = data1 data2 data3\nELEM2 = True\n')
 
     def test_054(self):
         """
@@ -869,8 +881,8 @@ class TestSoong(unittest.TestCase):
         """
         Represent a section as make fragment using a variable prefix
         """
-        self.assert_mk("052_query_recursive_subsect_merge", '/section_2',
-                       'DMK_ELEM5 = data7\nDMK_NAME = sec2\n', "DMK_")
+        self.assert_mk("052_query_recursive_subsect_merge", '/section_2', None,
+                       '# HEADER\nDMK_ELEM5 = data7\nDMK_NAME = sec2\n', "DMK_")
 
     def test_055(self):
         """
@@ -969,7 +981,8 @@ class TestSoong(unittest.TestCase):
         """
         Defaults are not incorporated in this example. Regression test.
         """
-        self.assert_mk("066_defaults_regression", '/cc_test[@name=libcutils_test]',
+        self.assert_mk("066_defaults_regression", '/cc_test[@name=libcutils_test]', None,
+                       '# HEADER\n' +
                        'CFLAGS = -Wall -Werror -Wextra\n' +
                        'NAME = libcutils_test\n' +
                        'SHARED_LIBS = libbase libcutils liblog\n' +
@@ -979,8 +992,8 @@ class TestSoong(unittest.TestCase):
         """
         Test whether hash sign is properly escaped in make output
         """
-        self.assert_mk("067_escape_hash", '/section_1',
-                       'ELEM1 = da\\#ta1\nNAME = sec1\n', "")
+        self.assert_mk("067_escape_hash", '/section_1', None,
+                       '# HEADER\nELEM1 = da\\#ta1\nNAME = sec1\n', "")
 
     def test_068(self):
         """
@@ -996,6 +1009,7 @@ if __name__ == "__main__":
     PARSER.add_argument('-v', '--verbose', help='Verbose output', action='store_true')
     PARSER.add_argument('-b', '--basedir', help='Base directory', action='store')
     PARSER.add_argument('-i', '--input', help='Input file to load', action='append')
+    PARSER.add_argument('-V', '--variable', help='Set variable', action='append')
     PARSER.add_argument('-o', '--output', help='Output file', action='store')
     PARSER.add_argument('-p', '--prefix', help='Prepend prefix to variables',
                         action='store', default='')
@@ -1061,8 +1075,15 @@ if __name__ == "__main__":
     try:
         QUERY_TEXT = "|".join(ARGS.queries)
         QUERY_RESULT = SOONG_PARSER.query(QUERY_TEXT)
-        with open(ARGS.output, 'w') as outfile:
-            outfile.write(make_vars(QUERY_RESULT, ARGS.prefix))
+        output = make_vars(QUERY_RESULT, QUERY_TEXT, ARGS.prefix, ARGS.variable)
+        try:
+            with open(ARGS.output, 'r') as infile:
+                old = infile.read()
+        except:
+            old = ""
+        if output != old:
+            with open(ARGS.output, 'w') as outfile:
+                outfile.write(output)
     except Exception as exception:
         print('$(error ERROR EXECUTING GNOOS: ' + str(exception) + ')')
         raise
