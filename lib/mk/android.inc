@@ -47,7 +47,10 @@ include $(ANDROID_OUTPUT)
 SRC_C  += $(filter-out $(ANDROID_EXCLUDE_C),$(filter %.c,$($(ANDROID_NAME)_SRCS)))
 SRC_CC += $(filter-out $(ANDROID_EXCLUDE_CC),$(filter %.cpp %.cc,$($(ANDROID_NAME)_SRCS)))
 SRC_S  += $(filter-out $(ANDROID_EXCLUDE_S),$(filter %.S %.s,$($(ANDROID_NAME)_SRCS)))
-CC_OPT += -Werror -D__GENODE__ -D__ANDROID__ $(filter-out $(ANDROID_EXCLUDE_OPT),$($(ANDROID_NAME)_CFLAGS))
+
+CC_OPT += $(filter-out $(ANDROID_EXCLUDE_OPT),$($(ANDROID_NAME)_CFLAGS))
+CC_OPT += $(filter-out $(ANDROID_EXCLUDE_OPT),$($(ANDROID_NAME)_CPPFLAGS))
+CC_OPT += -Werror -D__GENODE__ -D__ANDROID__
 CC_OPT += -Wno-unused-function -Wno-unused-variable -Wno-unused-parameter
 CC_CXX_WARN_STRICT =
 
