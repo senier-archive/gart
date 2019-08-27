@@ -1,0 +1,7 @@
+LICENSE   := Apache_2.0
+VERSION   := git
+DOWNLOADS := gart_vixl.git
+
+URL(gart_vixl) := https://android.googlesource.com/platform/external/vixl
+DIR(gart_vixl) := vixl
+REV(gart_vixl) := android-9.0.0_r45

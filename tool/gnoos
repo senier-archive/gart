@@ -257,7 +257,10 @@ class Soong:
         self.__data['sections'].extend(tokens)
 
     def parse(self, infile):
-        filepath = self.__basedir + "/" + infile
+        if infile.startswith('/'):
+            filepath = infile
+        else:
+            filepath = self.__basedir + "/" + infile
         with open(filepath, 'r') as filehandle:
             try:
                 self._grammar.parseFile(filehandle)

@@ -1,0 +1,4 @@
+// Fake section to avoid importing art repository
+cc_defaults {
+    name: "dex2oat-pgo-defaults"
+}
