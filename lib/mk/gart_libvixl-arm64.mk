@@ -1,7 +1,7 @@
 ANDROID_PORT		 = vixl
 ANDROID_DIR			 = vixl
 ANDROID_BUILDFILES = $(REP_DIR)/include/vixl/Android.bp Android.bp
-ANDROID_SECTIONS	 = /cc_library[@name=libvixl-arm]
+ANDROID_SECTIONS	 = /cc_library[@name=libvixl-arm64]
 
 ANDROID_EXCLUDE_OPT = -Wimplicit-fallthrough
 CC_OPT += -Wno-stringop-truncation
