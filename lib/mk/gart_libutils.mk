@@ -4,7 +4,7 @@ ANDROID_SECTIONS	= \
 	/cc_library[@name=libutils] \
 	/cc_library[@name=libutils]/target/android
 
-ANDROID_EXCLUDE_OPT += -fvisibility=protected
+ANDROID_EXCLUDE_OPT = -fvisibility=protected
 VPATH += $(REP_DIR)/src/libutils
 
 CC_OPT += -Wno-class-memaccess
