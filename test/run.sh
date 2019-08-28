@@ -36,8 +36,9 @@ TESTS="
    run/test/libnativebridge/UnavailableNativeBridge
    run/test/libnativebridge/ValidNameNativeBridge
    run/test/libziparchive
-   run/test/vixl
 "
+
+#   run/test/vixl
 
 if [ ${CI_ARCH} != "arm_v7a" ];
 then
