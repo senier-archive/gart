@@ -43,6 +43,12 @@ class SoongGraph(SOONG.Soong):
                 self.__graph.add_edge(secdata['name'], lib, color='#f0a848')
                 self.add_edges(self.query('/*[@name=' + lib + ']'))
 
+        if 'whole_static_libs' in secdata:
+            for lib in secdata['whole_static_libs']:
+                self.__graph.add_edge(secdata['name'], lib, color='#f0a848')
+                self.add_edges(self.query('/*[@name=' + lib + ']'))
+
+
     def __init__(self, rootdir, dirs, queries, reduction=False, target=None, arch=None, label=False):
 
         SOONG.Soong.__init__(self, rootdir,
