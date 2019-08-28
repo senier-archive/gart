@@ -1,49 +1,10 @@
 #!/bin/sh -eu
 
-CI_ARCH=$1
-CI_KERNEL=$2
-CI_BOARD=$3
-CI_OPTS=$4
-
-# Tests to run
-TESTS="
-   run/log
-   run/gtest
-   run/test/libbase
-   run/test/liblog
-   run/test/libmetricslogger
-   run/test/libz
-   run/test/libcutils
-   run/test/libutils
-   run/test/jni_invocation
-   run/test/libnativebridge/CodeCacheCreate
-   run/test/libnativebridge/CodeCacheExists
-   run/test/libnativebridge/CodeCacheStatFail
-   run/test/libnativebridge/CompleteFlow
-   run/test/libnativebridge/InvalidCharsNativeBridge
-   run/test/libnativebridge/NativeBridge3CreateNamespace
-   run/test/libnativebridge/NativeBridge3GetError
-   run/test/libnativebridge/NativeBridge3InitAnonymousNamespace
-   run/test/libnativebridge/NativeBridge3IsPathSupported
-   run/test/libnativebridge/NativeBridge3LoadLibraryExt
-   run/test/libnativebridge/NativeBridge3UnloadLibrary
-   run/test/libnativebridge/NativeBridgeVersion
-   run/test/libnativebridge/NeedsNativeBridge
-   run/test/libnativebridge/PreInitializeNativeBridgeFail1
-   run/test/libnativebridge/PreInitializeNativeBridgeFail2
-   run/test/libnativebridge/PreInitializeNativeBridge
-   run/test/libnativebridge/ReSetupNativeBridge
-   run/test/libnativebridge/UnavailableNativeBridge
-   run/test/libnativebridge/ValidNameNativeBridge
-   run/test/libziparchive
-"
-
-#   run/test/vixl
-
-if [ ${CI_ARCH} != "arm_v7a" ];
-then
-   TESTS="${TESTS} run/test/liblz4"
-fi
+CI_ARCH=$1; shift
+CI_KERNEL=$1; shift
+CI_BOARD=$1; shift
+CI_OPTS=$1; shift
+CI_TESTS=$*
 
 env
 
@@ -52,7 +13,7 @@ echo " KERNEL: ${CI_KERNEL}"
 echo " BOARD:  ${CI_BOARD}"
 echo " ARCH:   ${CI_ARCH}"
 echo " OPTS:   ${CI_OPTS}"
-echo " TESTS:  ${TESTS}"
+echo " TESTS:  ${CI_TESTS}"
 echo "==========================================="
 
 create_builddir()
@@ -122,4 +83,4 @@ then
    /genode/tool/ports/prepare_port nova
 fi
 
-make -C /genode_build/${CI_ARCH} ${TESTS} KERNEL=${CI_KERNEL} BOARD=${CI_BOARD} EXT_RUN_OPT="${CI_OPTS}"
+make -C /genode_build/${CI_ARCH} ${CI_TESTS} KERNEL=${CI_KERNEL} BOARD=${CI_BOARD} EXT_RUN_OPT="${CI_OPTS}"

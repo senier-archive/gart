@@ -1,3 +1,4 @@
+---
 sudo: required
 
 language: c
@@ -7,10 +8,87 @@ services:
     - docker
 
 env:
-   - CI_ARCH=x86_64 CI_KERNEL=linux CI_BOARD=linux CI_OPTS="--include power_on/linux --include log/linux"
-   - CI_ARCH=x86_64 CI_KERNEL=nova CI_BOARD=pc CI_OPTS="--include power_on/qemu --include log/qemu --include image/iso"
-   - CI_ARCH=arm_v8a CI_KERNEL=foc CI_BOARD=rpi3 CI_OPTS="--include power_on/qemu --include log/qemu"
-   - CI_ARCH=arm_v7a CI_KERNEL=foc CI_BOARD=pbxa9 CI_OPTS="--include power_on/qemu --include log/qemu"
+    global:
+        - TESTS_BASE="
+            run/log
+            run/gtest
+            run/test/libbase
+            run/test/liblog
+            run/test/libmetricslogger
+            run/test/libz
+            run/test/libcutils
+            run/test/libutils
+            run/test/jni_invocation
+            run/test/libnativebridge/CodeCacheCreate
+            run/test/libnativebridge/CodeCacheExists
+            run/test/libnativebridge/CodeCacheStatFail
+            run/test/libnativebridge/CompleteFlow
+            run/test/libnativebridge/InvalidCharsNativeBridge
+            run/test/libnativebridge/NativeBridge3CreateNamespace
+            run/test/libnativebridge/NativeBridge3GetError
+            run/test/libnativebridge/NativeBridge3InitAnonymousNamespace
+            run/test/libnativebridge/NativeBridge3IsPathSupported
+            run/test/libnativebridge/NativeBridge3LoadLibraryExt
+            run/test/libnativebridge/NativeBridge3UnloadLibrary
+            run/test/libnativebridge/NativeBridgeVersion
+            run/test/libnativebridge/NeedsNativeBridge
+            run/test/libnativebridge/PreInitializeNativeBridgeFail1
+            run/test/libnativebridge/PreInitializeNativeBridgeFail2
+            run/test/libnativebridge/PreInitializeNativeBridge
+            run/test/libnativebridge/ReSetupNativeBridge
+            run/test/libnativebridge/UnavailableNativeBridge
+            run/test/libnativebridge/ValidNameNativeBridge
+            run/test/libziparchive"
+        - TESTS_LIBLZ4="run/test/liblz4"
+        - TESTS_VIXL="run/test/vixl"
+
+        - LINUX_X86_64_LINUX="x86_64 linux linux"
+        - NOVA_X86_64_PC="x86_64 nova pc"
+        - FOC_ARM_V8A_RPI3="arm_v8a foc rpi3"
+        - FOC_ARM_V7A_PBXA9="arm_v7a foc pbxa9"
+
+        - OPTS_QEMU="
+            --include power_on/qemu
+            --include log/qemu
+          "
+
+        - OPTS_QEMU_ISO="
+            --include power_on/qemu
+            --include log/qemu
+            --include image/iso
+          "
+        - OPTS_LINUX="
+            --include power_on/linux
+            --include log/linux
+          "
+
+matrix:
+    include:
+        - name: "linux-x86_64-linux: base tests + lz4"
+          env: TESTS=TESTS_BASE
+               EXTRA=TESTS_LIBLZ4
+               PLATFORM=LINUX_X86_64_LINUX
+               OPTS=OPTS_LINUX
+
+        - name: "nova-x86_64-pc: base tests + lz4"
+          env: TESTS=TESTS_BASE
+               EXTRA=TESTS_LIBLZ4
+               PLATFORM=NOVA_X86_64_PC
+               OPTS=OPTS_QEMU_ISO
+
+        - name: "foc-arm_v8a-rpi3: base tests + lz4"
+          env: TESTS=TESTS_BASE
+               EXTRA=TESTS_LIBLZ4
+               PLATFORM=FOC_ARM_V8A_RPI3
+               OPTS=OPTS_QEMU
+
+        - name: "foc-arm_v7a-pbxa9: base tests"
+          env: TESTS=TESTS_BASE
+               PLATFORM=FOC_ARM_V7A_PBXA9
+               OPTS=OPTS_QEMU
 
 script:
-    - docker run -v $PWD:/gart -v $HOME/.ccache:/ccache -t jklmnn/componolit-ci:latest-genode /gart/test/run.sh "$CI_ARCH" "$CI_KERNEL" "$CI_BOARD" "$CI_OPTS"
+    - docker run -v $PWD:/gart
+                 -v $HOME/.ccache:/ccache
+                 -t jklmnn/componolit-ci:latest-genode
+                 /gart/test/run.sh ${!PLATFORM} "${!OPTS}" ${!TESTS} ${!EXTRA}
