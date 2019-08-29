@@ -63,10 +63,10 @@ apt -y install python3-pyparsing xorriso qemu-system ccache
 cd /gart/tool
 ./gnoos --test
 
-# Update Genode repository and check out componolit/gart branch
+# Update Genode repository and check out 19.08
 cd ${GENODE_DIR}
 git fetch --all
-git checkout componolit/gart
+git checkout 19.08
 
 # Setup external repos
 git clone -b gtest_base_linux https://github.com/Componolit/genode-world.git ${GENODE_DIR}/repos/world
