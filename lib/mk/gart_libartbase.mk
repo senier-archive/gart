@@ -28,9 +28,6 @@ CC_OPT += -Wno-implicit-fallthrough
 CC_OPT += -Wno-type-limits
 CC_OPT += -Wno-unused-but-set-variable
 
-# jni.h required
-#LIBS += gart_libnativehelper
-
 # Build ART for Android
 CC_OPT += -DART_TARGET -DART_TARGET_LINUX
 
@@ -38,6 +35,6 @@ CC_OPT += -DART_TARGET -DART_TARGET_LINUX
 CC_OPT += -DART_LOG_CONSTEXPR_HACK
 
 # Prevent we're Linux to use clock_gettime in favor of gettimeofday
-CC_OPT_time_utils += -D__linux__
+CC_OPT_base/time_utils += -D__linux__
 
 include $(call select_from_repositories,lib/mk/android-lib.inc)
