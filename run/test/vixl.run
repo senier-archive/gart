@@ -2631,7 +2631,7 @@ install_config {
             <arg value="AARCH32_ASSEMBLER_COND_DT_DRT_DRD_DRN_DRM_FLOAT_F32_ONLY_vpmax_T32"/>
             <arg value="AARCH32_ASSEMBLER_COND_DT_DRT_DRD_DRN_DRM_FLOAT_F32_ONLY_vpmin_T32"/>
             <!--
-            -- TRACE_* require system()
+            - TRACE_* require system()
             <arg value="TRACE_disasm"/>
             <arg value="TRACE_regs"/>
             <arg value="TRACE_vregs"/>
@@ -2650,7 +2650,7 @@ install_config {
             <arg value="TRACE_none_colour"/>
             <arg value="TRACE_state_colour"/>
             <arg value="TRACE_all_colour"/>
-            -- Those tests fail, investigate
+            - Those tests fail, investigate
             <arg value="AARCH64_SIM_fmadd_d"/>
             <arg value="AARCH64_SIM_fmsub_d"/>
             <arg value="AARCH64_SIM_fnmadd_d"/>
@@ -2681,4 +2681,4 @@ append_platform_drv_boot_modules
 build_boot_image $boot_modules
 
 append qemu_args " -m 512 -nographic "
-run_genode_until {.*child "vixl_test" exited with exit value 0} 120
+run_genode_until {.*child "vixl_test" exited with exit value 0} 600
