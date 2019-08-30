@@ -68,8 +68,12 @@ CC_OPT += -DART_FRAME_SIZE_LIMIT=1736
 CC_OPT += -DART_TARGTE -DART_TARGET_LINUX
 CC_OPT += -DART_BASE_ADDRESS_MIN_DELTA=-0x1000000
 CC_OPT += -DART_BASE_ADDRESS_MAX_DELTA=0x1000000
+CC_OPT += -DART_USE_FUTEXES=0
 
 # Base address (derived from build/soong/android/config.go)
 CC_OPT += -DART_BASE_ADDRESS=0x70000000
+
+# attributes are not allowed on a function-definition with gcc
+CC_OPT_entrypoints/quick/quick_dexcache_entrypoints += -D'__attribute__(x)='
 
 include $(call select_from_repositories,lib/mk/android-lib.inc)
