@@ -37,4 +37,7 @@ CC_OPT += -DART_TARGET -DART_TARGET_LINUX
 # Disable some logging macros to ensure constexpr can be used (cf. include/gart/android-base/logging.h)
 CC_OPT += -DART_LOG_CONSTEXPR_HACK
 
+# Prevent we're Linux to use clock_gettime in favor of gettimeofday
+CC_OPT_time_utils += -D__linux__
+
 include $(call select_from_repositories,lib/mk/android-lib.inc)
