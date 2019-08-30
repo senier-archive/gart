@@ -34,7 +34,7 @@ CC_OPT += -Wno-type-limits
 LIBS += gart_libnativehelper
 
 # Build ART for Android
-CC_OPT += -DART_TARGET_ANDROID
+CC_OPT += -DART_TARGET -DART_TARGET_LINUX
 
 # Disable some logging macros to ensure constexpr can be used (cf. include/gart/android-base/logging.h)
 CC_OPT += -DART_LOG_CONSTEXPR_HACK

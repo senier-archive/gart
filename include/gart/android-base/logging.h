@@ -1,9 +1,10 @@
 #pragma once
 
 #include_next <android-base/logging.h>
+#include <gart/log_discard.h>
 
-#undef DCHECK_NE
-#define DCHECK_NE(x, y)
+#undef CHECK_OP
+#define CHECK_OP(LHS, RHS, OP) Discard()
 
 #ifdef ART_LOG_CONSTEXPR_HACK
 #undef WOULD_LOG
