@@ -9,6 +9,11 @@ namespace art {
 
    namespace mirror {
       struct Object;
+      struct Reference;
+   }
+
+   namespace verifier {
+      struct RegType;
    }
 }
 
@@ -24,6 +29,8 @@ class Discard
       Discard& operator<< (const art::InstructionSet&) { return *this; };
       Discard& operator<< (const art::ClassStatus&) { return *this; };
       Discard& operator<< (const art::mirror::Object *) { return *this; };
+      Discard& operator<< (const art::mirror::Reference *) { return *this; };
+      Discard& operator<< (const art::verifier::RegType&) { return *this; };
 
       Discard &operator<< (std::ostream& (*os)(std::ostream&)) { return *this; };
 
