@@ -2,7 +2,8 @@ ANDROID_PORT		 = art
 ANDROID_DIR			 = art
 ANDROID_BUILDFILES = build/Android.bp test/Android.bp sigchainlib/Android.bp
 ANDROID_SOURCES	 = sigchainlib
-ANDROID_SECTIONS	= /cc_library_static[@name=libsigchain_dummy]
+ANDROID_INCLUDES	 = sigchainlib
+ANDROID_SECTIONS	 = /cc_library_static[@name=libsigchain_dummy]
 
 # Options unsupported by GCC
 ANDROID_EXCLUDE_OPT += -Wint-to-void-pointer-cast

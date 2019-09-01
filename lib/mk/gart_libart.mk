@@ -28,7 +28,6 @@ ANDROID_EXCLUDE_OPT += -Wimplicit-fallthrough
 ANDROID_EXCLUDE_OPT += -Wunused
 ANDROID_EXCLUDE_OPT += -Wfloat-equal
 ANDROID_EXCLUDE_OPT += -Wextra
-ANDROID_EXCLUDE_OPT += -Wformat
 
 CC_OPT += -Wno-parentheses
 CC_OPT += -Wno-maybe-uninitialized
@@ -40,12 +39,18 @@ CC_OPT += -Wno-pragmas
 CC_OPT += -Wno-unknown-pragmas
 CC_OPT += -Wno-unused-but-set-variable
 CC_OPT += -Wno-attributes
+CC_OPT += -Wno-format
+CC_OPT += -Wno-return-type
+CC_OPT += -Wno-overflow
 
 # jni.h required
 LIBS += gart_libnativehelper
 
 # dlmalloc required
 LIBS += gart_dlmalloc
+
+# sigchain lib required
+LIBS += gart_libsigchain
 
 # Disable some logging macros to ensure constexpr can be used (cf. include/gart/android-base/logging.h)
 CC_OPT += -DART_LOG_CONSTEXPR_HACK
