@@ -24,4 +24,9 @@ class Discard
       Discard& operator<< (const art::InstructionSet&) { return *this; };
       Discard& operator<< (const art::ClassStatus&) { return *this; };
       Discard& operator<< (const art::mirror::Object *) { return *this; };
+
+      Discard &operator<< (std::ostream& (*os)(std::ostream&)) { return *this; };
+
+      template<typename T>
+      Discard &operator<< (const T value) { return *this; };
 };
