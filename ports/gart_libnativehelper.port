@@ -2,6 +2,6 @@ LICENSE   := Apache_2.0
 VERSION   := git
 DOWNLOADS := gart_libnativehelper.git
 
-URL(gart_libnativehelper) := https://android.googlesource.com/platform/libnativehelper
+URL(gart_libnativehelper) := https://github.com/Componolit/android_platform_nativehelper
 DIR(gart_libnativehelper) := libnativehelper
 REV(gart_libnativehelper) := android-9.0.0_r45
