@@ -27,5 +27,6 @@ static pid_t gettid(void) { return getpid(); };
 #endif
 
 #define lseek64(fd, off, whence) lseek(fd, off, whence)
+#define ftruncate64(fd, length) ftruncate(fd, length)
 
 #endif // !__GART_UNISTD_H__
