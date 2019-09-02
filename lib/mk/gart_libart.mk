@@ -1,7 +1,7 @@
 ANDROID_PORT		 = art
 ANDROID_DIR			 = art
 ANDROID_BUILDFILES = build/Android.bp test/Android.bp runtime/Android.bp
-ANDROID_INCLUDES   = runtime
+ANDROID_INCLUDES   = runtime runtime/generated cmdline
 ANDROID_SOURCES	 = runtime
 ANDROID_SECTIONS	= \
 	/art_cc_library[@name=libart] \
@@ -42,6 +42,8 @@ CC_OPT += -Wno-attributes
 CC_OPT += -Wno-format
 CC_OPT += -Wno-return-type
 CC_OPT += -Wno-overflow
+CC_OPT += -Wno-int-in-bool-context
+CC_OPT += -Wno-sign-compare
 
 # jni.h required
 LIBS += gart_libnativehelper
@@ -51,6 +53,9 @@ LIBS += gart_dlmalloc
 
 # sigchain lib required
 LIBS += gart_libsigchain
+
+# unicode required
+LIBS += gart_libicuuc
 
 # Disable some logging macros to ensure constexpr can be used (cf. include/gart/android-base/logging.h)
 CC_OPT += -DART_LOG_CONSTEXPR_HACK
@@ -80,5 +85,8 @@ CC_OPT += -DART_BASE_ADDRESS=0x70000000
 
 # attributes are not allowed on a function-definition with gcc
 CC_OPT_entrypoints/quick/quick_dexcache_entrypoints += -D'__attribute__(x)='
+
+# Make X_ASSERT usable in constexpr
+CC_OPT += -DJNI_SIGNATURE_CHECKER_DISABLE_ASSERTS
 
 include $(call select_from_repositories,lib/mk/android-lib.inc)
