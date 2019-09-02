@@ -20,7 +20,7 @@ namespace art {
 class Discard
 {
    public:
-      Discard& operator<< (const char*) { return *this; };
+      constexpr Discard& operator<< (const char*) { return *this; };
       Discard& operator<< (const std::string) { return *this; };
       Discard& operator<< (unsigned char) { return *this; };
       Discard& operator<< (const art::BitStringChar&) { return *this; };
