@@ -1,7 +1,10 @@
 ANDROID_PORT		 = vixl
 ANDROID_DIR			 = vixl
+ANDROID_INCLUDES	 = src
 ANDROID_BUILDFILES = $(REP_DIR)/include/vixl/Android.bp Android.bp
 ANDROID_SECTIONS	 = /cc_library[@name=libvixl-arm]
+
+ANDROID_EXCLUDE_OPT += -pedantic
 
 include $(call select_from_repositories,lib/mk/android-lib.inc)
 
