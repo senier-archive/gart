@@ -3,6 +3,7 @@
 
 #define EF_MIPS_ARCH_32R6 0x90000000
 #define EF_MIPS_ARCH_64R6 0xa0000000
+#define PT_MIPS_ABIFLAGS 0x70000003
 
 struct ElfTypes32 {
   typedef Elf32_Addr Addr;
