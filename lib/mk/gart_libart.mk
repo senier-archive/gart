@@ -21,8 +21,8 @@ LIBS += gart_libsigchain
 # unicode required
 LIBS += gart_libicuuc
 
-# Remove libtombstone and libbacktrace (mocked)
-ANDROID_EXCLUDE_LIBS += libtombstoned_client libbacktrace
+# Remove libtombstone (mocked)
+ANDROID_EXCLUDE_LIBS += libtombstoned_client
 
 # attributes are not allowed on a function-definition with gcc
 CC_OPT_entrypoints/quick/quick_dexcache_entrypoints += -D'__attribute__(x)='
