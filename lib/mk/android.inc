@@ -15,6 +15,10 @@ check_android_vars := $(call _assert,$(ANDROID_PORTDIR), Port $(ANDROID_PORT) no
 
 ANDROID_BASEDIR		= $(ANDROID_PORTDIR)/$(ANDROID_DIR)
 
+ifeq ($(ANDROID_BUILDTYPE),lib)
+-include $(REP_DIR)/lib/import/import-$(ANDROID_NAME).mk
+endif
+
 internal_android_arch = \
    $(if $(filter $(SPECS), x86_32),x86, \
       $(if $(filter $(SPECS), x86_64),x86_64, \
