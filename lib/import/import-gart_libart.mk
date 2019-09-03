@@ -33,6 +33,8 @@ CC_OPT += -Wno-return-type
 CC_OPT += -Wno-overflow
 CC_OPT += -Wno-int-in-bool-context
 CC_OPT += -Wno-sign-compare
+CC_OPT += -Wno-uninitialized
+CC_OPT += -Wno-ignored-attributes
 
 # Disable some logging macros to ensure constexpr can be used (cf. include/gart/android-base/logging.h)
 CC_OPT += -DART_LOG_CONSTEXPR_HACK
