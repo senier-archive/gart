@@ -1,5 +1,12 @@
 #!/bin/sh -eu
 
+if [ x${GNOOS_TESTS} = x1 ];
+then
+   cd tool
+   ./gnoos --test
+   exit 1
+fi
+
 CI_ARCH=$1; shift
 CI_KERNEL=$1; shift
 CI_BOARD=$1; shift
