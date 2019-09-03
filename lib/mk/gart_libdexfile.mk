@@ -31,7 +31,10 @@ CC_OPT += -Wno-implicit-fallthrough
 CC_OPT += -Wno-type-limits
 
 # jni.h required
-LIBS += gart_libnativehelper
+ANDROID_LIBS += libnativehelper
+
+# dlmalloc required
+ANDROID_LIBS += dlmalloc
 
 # Build ART for Android
 CC_OPT += -DART_TARGET -DART_TARGET_LINUX

@@ -40,6 +40,12 @@ CC_OPT += -DART_LOG_CONSTEXPR_HACK
 # Make X_ASSERT usable in constexpr
 CC_OPT += -DJNI_SIGNATURE_CHECKER_DISABLE_ASSERTS
 
+# jni.h required
+LIBS += gart_libnativehelper
+
+# dlmalloc required
+LIBS += gart_dlmalloc
+
 include $(REP_DIR)/lib/mk/art_opts.inc
 
 ANDROID_LIB = libart
