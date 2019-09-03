@@ -40,6 +40,7 @@ env:
             run/test/libnativebridge/ValidNameNativeBridge
             run/test/libziparchive"
         - TESTS_LIBLZ4="run/test/liblz4"
+        - TESTS_GART="test/gart_dummy"
         - TESTS_VIXL="run/test/vixl"
 
         - LINUX_X86_64_LINUX="x86_64 linux linux"
@@ -70,9 +71,19 @@ matrix:
                PLATFORM=LINUX_X86_64_LINUX
                OPTS=OPTS_LINUX
 
+        - name: "linux-x86_64-linux: GART tests4"
+          env: TESTS=TESTS_GART
+               PLATFORM=LINUX_X86_64_LINUX
+               OPTS=OPTS_LINUX
+
         - name: "nova-x86_64-pc: base tests + lz4"
           env: TESTS=TESTS_BASE
                EXTRA=TESTS_LIBLZ4
+               PLATFORM=NOVA_X86_64_PC
+               OPTS=OPTS_QEMU_ISO
+
+        - name: "nova-x86_64-pc: GART tests"
+          env: TESTS=TESTS_GART
                PLATFORM=NOVA_X86_64_PC
                OPTS=OPTS_QEMU_ISO
 
@@ -82,8 +93,18 @@ matrix:
                PLATFORM=FOC_ARM_V8A_RPI3
                OPTS=OPTS_QEMU
 
+        - name: "foc-arm_v8a-rpi3: GART tests"
+          env: TESTS=TESTS_GART
+               PLATFORM=FOC_ARM_V8A_RPI3
+               OPTS=OPTS_QEMU
+
         - name: "foc-arm_v7a-pbxa9: base tests"
           env: TESTS=TESTS_BASE
+               PLATFORM=FOC_ARM_V7A_PBXA9
+               OPTS=OPTS_QEMU
+
+        - name: "foc-arm_v7a-pbxa9: GART tests"
+          env: TESTS=TESTS_GART
                PLATFORM=FOC_ARM_V7A_PBXA9
                OPTS=OPTS_QEMU
 
