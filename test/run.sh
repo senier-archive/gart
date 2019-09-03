@@ -76,7 +76,7 @@ ln -sf /gart ${GENODE_DIR}/repos/gart
 create_builddir ${CI_ARCH} ${GENODE_DIR}
 
 # Prepare ports
-/genode/tool/ports/prepare_port googletest gart_core gart_libz gart_libnativehelper gart_liblz4 gart_vixl
+/genode/tool/ports/prepare_port googletest
 
 if [ x${CI_KERNEL} = "xnova" ];
 then
