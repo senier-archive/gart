@@ -55,14 +55,6 @@ EOF
 GENODE_DIR=/genode
 export CCACHE_DIR=/ccache
 
-# Install pyparsing
-apt update
-apt -y install python3-pyparsing xorriso qemu-system ccache
-
-# Test gnoos
-cd /gart/tool
-./gnoos --test
-
 # Update Genode repository and check out 19.08
 cd ${GENODE_DIR}
 git fetch --all

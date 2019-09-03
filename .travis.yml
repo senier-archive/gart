@@ -63,6 +63,8 @@ env:
             --include log/linux
           "
 
+        - GNOOS_TESTS=0
+
 matrix:
     include:
         - name: "linux-x86_64-linux: base tests + lz4"
@@ -108,8 +110,14 @@ matrix:
                PLATFORM=FOC_ARM_V7A_PBXA9
                OPTS=OPTS_QEMU
 
+        - name: "Soong tests"
+          env: GNOOS_TESTS=1
+
 script:
-    - docker run -v $PWD:/gart
-                 -v $HOME/.ccache:/ccache
-                 -t jklmnn/componolit-ci:latest-genode
-                 /gart/test/run.sh ${!PLATFORM} "${!OPTS}" ${!TESTS} ${!EXTRA}
+    - docker run
+         -e GNOOS_TESTS=${GNOOS_TESTS}
+         -v $PWD:/gart
+         -v $HOME/.ccache:/ccache
+         -t
+         jklmnn/componolit-ci:latest-genode
+         /gart/test/run.sh ${!PLATFORM} "${!OPTS}" ${!TESTS} ${!EXTRA}
