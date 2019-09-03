@@ -2,9 +2,9 @@
 
 if [ x${GNOOS_TESTS} = x1 ];
 then
-   cd tool
+   cd /gart/tool
    ./gnoos --test
-   exit 1
+   exit 0
 fi
 
 CI_ARCH=$1; shift
