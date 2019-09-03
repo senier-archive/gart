@@ -10,10 +10,19 @@ ANDROID_INCLUDES   ?= . include
 ANDROID_SOURCES    ?= .
 ANDROID_BUILDFILES ?= Android.bp
 
-ANDROID_PORTDIR     = $(call select_from_ports,gart_$(ANDROID_PORT))
-check_android_vars := $(call _assert,$(ANDROID_PORTDIR), Port $(ANDROID_PORT) not found for $(ANDROID_NAME))
+ANDROID_PORTDIR = $(call select_from_ports,gart_$(ANDROID_PORT))
 
-ANDROID_BASEDIR		= $(ANDROID_PORTDIR)/$(ANDROID_DIR)
+ifeq ($(ANDROID_PORTDIR),)
+DUMMY := $(shell echo GART: Port $(ANDROID_PORT) not found for $(ANDROID_NAME), preparing... 1>&2)
+DUMMY := $(shell $(BASE_DIR)/../../tool/ports/prepare_port gart_$(ANDROID_PORT))
+endif
+
+ANDROID_PORTDIR = $(call select_from_ports,gart_$(ANDROID_PORT))
+ifeq ($(ANDROID_PORTDIR),)
+$(error Error preparing $(ANDROID_PORT) for $(ANDROID_NAME).)
+endif
+
+ANDROID_BASEDIR	= $(ANDROID_PORTDIR)/$(ANDROID_DIR)
 
 ifeq ($(ANDROID_BUILDTYPE),lib)
 -include $(REP_DIR)/lib/import/import-$(ANDROID_NAME).mk
