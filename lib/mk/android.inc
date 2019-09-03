@@ -15,6 +15,7 @@ ANDROID_PORTDIR = $(call _port_dir,gart_$(ANDROID_PORT))
 ifeq ($(ANDROID_PORTDIR),)
 DUMMY := $(shell echo GART: Port $(ANDROID_PORT) not found for $(ANDROID_NAME), preparing... 1>&2)
 DUMMY := $(shell $(BASE_DIR)/../../tool/ports/prepare_port gart_$(ANDROID_PORT))
+DUMMY := $(shell echo GART: Done preparing $(ANDROID_PORT))
 endif
 
 ANDROID_PORTDIR = $(call select_from_ports,gart_$(ANDROID_PORT))
