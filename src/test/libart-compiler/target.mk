@@ -36,4 +36,7 @@ CC_OPT += -Wno-tautological-compare
 # dlmalloc required
 ANDROID_LIBS += dlmalloc
 
+# FIXME: gcc-related Compiler error
+ANDROID_EXCLUDE_CC += utils/intrusive_forward_list_test.cc
+
 include $(call select_from_repositories,lib/mk/android-prg.inc)
