@@ -6,11 +6,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static
-void raise_SIGINT() {
-   fprintf(stderr, "raise(SIGINT) not implemented");
-   exit(1);
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+void raise_SIGINT();
+
+#ifdef __cplusplus
 }
+#endif
 
 #define raise(sig) raise_##sig()
 

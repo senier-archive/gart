@@ -30,6 +30,8 @@
  * functionality in `<dlfcn.h>` instead.
  */
 
+__BEGIN_DECLS
+
 /** Bitfield definitions for `android_dlextinfo::flags`. */
 enum {
   /**
@@ -173,5 +175,7 @@ typedef struct {
  * with the Android-specific flags supplied via the `flags` member of `__info`.
  */
 void* android_dlopen_ext(const char* __filename, int __flags, const android_dlextinfo* __info);
+
+__END_DECLS
 
 #endif
