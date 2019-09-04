@@ -8,6 +8,9 @@ ANDROID_SECTIONS	= \
 
 ANDROID_INCLUDES += libartbase libdexfile
 
+GENSRCS_SECTION=dexfile_operator_srcs
+GENSRCS_SUBDIR=libdexfile
+
 # Fix visiblility
 ANDROID_EXCLUDE_OPT += -fvisibility=protected
 

@@ -39,6 +39,12 @@ android_arch = $(strip $(call internal_android_arch))
 # Set Android-compatible architecture
 ANDROID_ARCH = $(call android_arch)
 
+# Set options for operator sources
+ifneq ($(GENSRCS_SECTION),)
+ANDROID_INCLUDES += $(GENSRCS_SUBDIR)
+ANDROID_SECTIONS +=	/gensrcs[@name=$(GENSRCS_SECTION)]
+endif
+
 COMMAND := \
 	mkdir -p $(dir $(ANDROID_OUTPUT)) && \
 	$(call select_from_repositories,tool/gnoos) \
@@ -52,6 +58,11 @@ COMMAND := \
 
 DUMMY := $(shell $(COMMAND))
 include $(ANDROID_OUTPUT)
+
+# Generate operator sources
+ifneq ($(GENSRCS_SECTION),)
+include $(call select_from_repositories,lib/mk/art-operators.inc)
+endif
 
 SRC_C  += $(filter-out $(ANDROID_EXCLUDE_C),$(filter %.c,$($(ANDROID_NAME)_SRCS)))
 SRC_CC += $(filter-out $(ANDROID_EXCLUDE_CC),$(filter %.cpp %.cc,$($(ANDROID_NAME)_SRCS)))

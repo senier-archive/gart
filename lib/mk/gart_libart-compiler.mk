@@ -10,6 +10,9 @@ ANDROID_SECTIONS   = \
 	/art_cc_library[@name=libart-compiler]/codegen/x86 \
 	/art_cc_library[@name=libart-compiler]/codegen/x86_64
 
+GENSRCS_SECTION=art_compiler_operator_srcs
+GENSRCS_SUBDIR=compiler
+
 # jni.h required
 LIBS += gart_libnativehelper
 

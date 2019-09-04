@@ -8,7 +8,10 @@ ANDROID_SECTIONS	= \
 	/art_cc_library[@name=libart]/shared \
 	/art_cc_library[@name=libart]/target/android \
 	/art_cc_library[@name=libart]/target/android_$(call android_arch) \
-	/art_cc_library[@name=libart]/arch/$(call android_arch)
+	/art_cc_library[@name=libart]/arch/$(call android_arch) \
+
+GENSRCS_SECTION=art_operator_srcs
+GENSRCS_SUBDIR=runtime
 
 # jni.h required
 LIBS += gart_libnativehelper
