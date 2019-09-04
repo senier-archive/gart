@@ -7,7 +7,8 @@ ANDROID_SECTIONS	= \
 	/art_cc_library[@name=libart] \
 	/art_cc_library[@name=libart]/shared \
 	/art_cc_library[@name=libart]/target/android \
-	/art_cc_library[@name=libart]/target/android_$(call android_arch)
+	/art_cc_library[@name=libart]/target/android_$(call android_arch) \
+	/art_cc_library[@name=libart]/arch/$(call android_arch)
 
 # jni.h required
 LIBS += gart_libnativehelper
