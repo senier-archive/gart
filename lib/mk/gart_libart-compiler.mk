@@ -6,6 +6,7 @@ ANDROID_BUILDFILES = Android.bp test/Android.bp build/Android.bp compiler/Androi
 ANDROID_SECTIONS   = \
 	/art_cc_library[@name=libart-compiler] \
 	/art_cc_library[@name=libart-compiler]/codegen/arm \
+	/art_cc_library[@name=libart-compiler]/codegen/arm64 \
 	/art_cc_library[@name=libart-compiler]/codegen/x86 \
 	/art_cc_library[@name=libart-compiler]/codegen/x86_64
 
