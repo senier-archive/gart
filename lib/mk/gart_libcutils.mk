@@ -26,6 +26,10 @@ SRC_CC += sockets_genode.cpp
 ANDROID_EXCLUDE_CC += socket_inaddr_any_server_unix.cpp
 SRC_CC += socket_inaddr_any_server_genode.cpp
 
+# Dummy tracing interface
+ANDROID_EXCLUDE_CC += trace-dev.cpp
+SRC_CC += trace-genode.cc
+
 include $(call select_from_repositories,lib/mk/android-lib.inc)
 VPATH += $(REP_DIR)/src/libcutils
 
