@@ -31,4 +31,8 @@ ANDROID_EXCLUDE_LIBS += libtombstoned_client
 # attributes are not allowed on a function-definition with gcc
 CC_OPT_entrypoints/quick/quick_dexcache_entrypoints += -D'__attribute__(x)='
 
+# Custom implementations
+VPATH += $(REP_DIR)/src/libart
+SRC_CC += pthread.cc libc.cc
+
 include $(call select_from_repositories,lib/mk/android-lib.inc)
