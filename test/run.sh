@@ -62,10 +62,10 @@ EOF
 GENODE_DIR=/genode
 export CCACHE_DIR=/ccache
 
-# Update Genode repository and check out 19.08
+# Update Genode repository and check out componolit/gart branch
 cd ${GENODE_DIR}
 git fetch --all
-git checkout 19.08
+git checkout componolit/gart
 
 # Setup external repos
 git clone -b gtest_base_linux https://github.com/Componolit/genode-world.git ${GENODE_DIR}/repos/world
