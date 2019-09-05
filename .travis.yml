@@ -40,7 +40,7 @@ env:
             run/test/libnativebridge/ValidNameNativeBridge
             run/test/libziparchive"
         - TESTS_LIBLZ4="run/test/liblz4"
-        - TESTS_GART="test/gart_dummy"
+        - TESTS_GART="test/libart-compiler"
         - TESTS_VIXL="run/test/vixl"
 
         - LINUX_X86_64_LINUX="x86_64 linux linux"
