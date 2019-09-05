@@ -4,6 +4,7 @@ ANDROID_SOURCES    = simulator
 ANDROID_INCLUDES	 = simulator simulator/include
 ANDROID_BUILDFILES = Android.bp test/Android.bp build/Android.bp simulator/Android.bp
 ANDROID_SECTIONS   = /art_cc_library[@name=libart-simulator-container]
+ANDROID_STATIC_LIB = yes
 
 # jni.h required
 ANDROID_LIBS += libnativehelper

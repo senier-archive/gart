@@ -4,6 +4,9 @@ ANDROID_SOURCES    = compiler
 ANDROID_BUILDFILES = $(REP_DIR)/include/vixl/Android.bp Android.bp test/Android.bp build/Android.bp compiler/Android.bp
 ANDROID_SECTIONS   = /art_cc_library[@name=libart-compiler-gtest]
 
+# Make this lib static to reduce number of shared libs to be put into an image
+ANDROID_STATIC_LIB = yes
+
 ANDROID_EXCLUDE_LIBS += libartd
 ANDROID_LIBS += libart
 

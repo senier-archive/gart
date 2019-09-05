@@ -3,6 +3,7 @@ ANDROID_DIR        = art
 ANDROID_SOURCES    = runtime
 ANDROID_BUILDFILES = $(REP_DIR)/include/vixl/Android.bp Android.bp test/Android.bp build/Android.bp runtime/Android.bp
 ANDROID_SECTIONS   = /art_cc_library[@name=libart-runtime-gtest]
+ANDROID_STATIC_LIB = yes
 
 ANDROID_EXCLUDE_LIBS += libartd
 ANDROID_LIBS += libart

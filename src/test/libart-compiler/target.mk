@@ -28,7 +28,7 @@ ANDROID_LIBS += libvixl-arm
 ANDROID_EXCLUDE_LIBS += libvixld-arm64
 ANDROID_LIBS += libvixl-arm64
 
-LIBS += gtest gart_gtest_main
+LIBS += gtest gart_main
 
 ANDROID_EXCLUDE_OPT += -Wno-frame-larger-than=
 CC_OPT += -Wno-tautological-compare

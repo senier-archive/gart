@@ -4,6 +4,7 @@ ANDROID_BUILDFILES = build/Android.bp test/Android.bp libartbase/Android.bp
 ANDROID_SOURCES	 = libartbase
 ANDROID_INCLUDES	 = libartbase
 ANDROID_SECTIONS	 = /art_cc_library[@name=libartbase]
+ANDROID_STATIC_LIB   = yes
 
 # Fix visiblility
 ANDROID_EXCLUDE_OPT += -fvisibility=protected

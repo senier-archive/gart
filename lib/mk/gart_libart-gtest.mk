@@ -4,6 +4,7 @@ ANDROID_BUILDFILES = build/Android.bp test/Android.bp runtime/Android.bp
 ANDROID_INCLUDES   = runtime
 ANDROID_SOURCES	 = runtime
 ANDROID_SECTIONS	= /art_cc_library[@name=libart-gtest]
+ANDROID_STATIC_LIB  = yes
 
 ANDROID_EXCLUDE_LIBS += libartd
 ANDROID_LIBS += libart

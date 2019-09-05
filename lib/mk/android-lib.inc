@@ -5,4 +5,7 @@ ANDROID_NAME = $(LIB)
 
 ANDROID_BUILDTYPE = lib
 include $(call select_from_repositories,lib/mk/android.inc)
+
+ifeq ($(ANDROID_STATIC_LIB),)
 SHARED_LIB = yes
+endif
