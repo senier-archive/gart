@@ -9,5 +9,3 @@ SRC_CC += unwind.cc
 
 CC_OPT += -Wno-unused-parameter
 INC_DIR += $(REP_DIR)/include/gart
-
-SHARED_LIB = yes
