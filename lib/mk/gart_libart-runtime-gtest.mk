@@ -26,6 +26,9 @@ ANDROID_LIBS += dlmalloc
 # unicode required
 ANDROID_LIBS += libicuuc
 
+# We want to use our own main
+CC_OPT_common_runtime_test += -Dmain=__unused_main
+
 CC_OPT += -DART_TARGET_NATIVETEST_DIR="/test"
 
 include $(REP_DIR)/lib/mk/art_opts.inc
