@@ -114,6 +114,7 @@ matrix:
           env: GNOOS_TESTS=1
 
 script:
+    - ccache -s
     - echo "Running for $[49*60-$(cut -f1 -d. /proc/uptime)]s"
     - timeout $[49*60-$(cut -f1 -d. /proc/uptime)] docker run
          -e GNOOS_TESTS=${GNOOS_TESTS}
@@ -122,3 +123,6 @@ script:
          -t
          jklmnn/componolit-ci:latest-genode
          /gart/test/run.sh ${!PLATFORM} "${!OPTS}" ${!TESTS} ${!EXTRA}
+
+before_cache:
+    - ccache -s
