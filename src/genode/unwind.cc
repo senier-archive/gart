@@ -11,7 +11,7 @@ _Unwind_Reason_Code _Unwind_Backtrace (_Unwind_Trace_Fn, void *)
     return _URC_NO_REASON;
 }
 
-unsigned long _Unwind_GetIP (struct _Unwind_Context *)
+_Unwind_Ptr _Unwind_GetIP (struct _Unwind_Context *)
 {
     return 0;
 }
