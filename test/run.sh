@@ -61,6 +61,7 @@ EOF
 
 GENODE_DIR=/genode
 export CCACHE_DIR=/ccache
+ccache -s
 
 # Update Genode repository and check out componolit/gart branch
 cd ${GENODE_DIR}
