@@ -114,7 +114,8 @@ matrix:
           env: GNOOS_TESTS=1
 
 script:
-    - docker run
+    - echo "Running for $[49*60-$(cut -f1 -d. /proc/uptime)]s"
+    - timeout $[49*60-$(cut -f1 -d. /proc/uptime)] docker run
          -e GNOOS_TESTS=${GNOOS_TESTS}
          -v $PWD:/gart
          -v $HOME/.ccache:/ccache
