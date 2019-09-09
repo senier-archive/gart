@@ -42,3 +42,8 @@ VPATH += $(REP_DIR)/src/libart
 SRC_CC += fault_handler_genode.cc
 
 include $(call select_from_repositories,lib/mk/android-lib.inc)
+
+# __atomic_load_16/__atomic_store_16 on ARMv8
+ifeq ($(call android_arch),arm64)
+LIBS += gart_libatomic
+endif
