@@ -6,6 +6,9 @@ ANDROID_SECTIONS	 = /cc_library[@name=libvixl-arm]
 
 ANDROID_EXCLUDE_OPT += -pedantic
 
+# Compat library for raise_SIGINT
+ANDROID_LIBS += genode
+
 include $(call select_from_repositories,lib/mk/android-lib.inc)
 
 SRC_CC = \

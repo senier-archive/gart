@@ -8,6 +8,7 @@ ANDROID_EXCLUDE_OPT = -Wredundant-decls -pedantic -DVIXL_DEBUG
 
 LIBS += gart_main gart_libvixl-arm64 gart_libvixl-arm
 CC_OPT += -Wno-unknown-pragmas
+CC_OPT += -fno-var-tracking-assignments
 
 include $(call select_from_repositories,lib/mk/android-prg.inc)
 

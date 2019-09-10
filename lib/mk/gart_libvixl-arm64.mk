@@ -6,6 +6,10 @@ ANDROID_SECTIONS	 = /cc_library[@name=libvixl-arm64]
 
 ANDROID_EXCLUDE_OPT += -pedantic
 ANDROID_EXCLUDE_OPT += -Wimplicit-fallthrough
+
+# Compat library for raise_SIGINT
+ANDROID_LIBS += genode
+
 CC_OPT += -Wno-stringop-truncation
 CC_OPT += -Wno-implicit-fallthrough
 

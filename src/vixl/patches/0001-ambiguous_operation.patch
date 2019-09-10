@@ -1,0 +1,22 @@
+diff --git a/test/aarch32/test-assembler-aarch32.cc b/test/aarch32/test-assembler-aarch32.cc
+index eb2a40d9..49738ef8 100644
+--- a/test/aarch32/test-assembler-aarch32.cc
++++ b/test/aarch32/test-assembler-aarch32.cc
+@@ -5454,7 +5454,7 @@ TEST_A32(ldm_stm_da_ib) {
+   __ Ldmda(r11, WRITE_BACK, RegisterList(r0, r1));
+   __ Ldmda(r11, NO_WRITE_BACK, RegisterList(r2, r3));
+ 
+-  __ Mov(r10, reinterpret_cast<uintptr_t>(src2) - sizeof(src2[0]));
++  __ Mov(r10, reinterpret_cast<uintptr_t>(src2) - static_cast<uint32_t>(sizeof(src2[0])));
+   __ Ldmib(r10, WRITE_BACK, RegisterList(r4, r5));
+   __ Ldmib(r10, NO_WRITE_BACK, RegisterList(r6, r7));
+ 
+@@ -5462,7 +5462,7 @@ TEST_A32(ldm_stm_da_ib) {
+   __ Stmda(r9, WRITE_BACK, RegisterList(r0, r1));
+   __ Stmda(r9, NO_WRITE_BACK, RegisterList(r2, r3));
+ 
+-  __ Mov(r8, reinterpret_cast<uintptr_t>(dst2) - sizeof(dst2[0]));
++  __ Mov(r8, reinterpret_cast<uintptr_t>(dst2) - static_cast<uint32_t>(sizeof(dst2[0])));
+   __ Stmib(r8, WRITE_BACK, RegisterList(r4, r5));
+   __ Stmib(r8, NO_WRITE_BACK, RegisterList(r6, r7));
+ 

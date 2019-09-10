@@ -5,3 +5,6 @@ DOWNLOADS := gart_vixl.git
 URL(gart_vixl) := https://android.googlesource.com/platform/external/vixl
 DIR(gart_vixl) := vixl
 REV(gart_vixl) := android-9.0.0_r45
+
+PATCHES := src/vixl/patches/0001-ambiguous_operation.patch
+PATCH_OPT := -p1 -d vixl
