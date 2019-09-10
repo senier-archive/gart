@@ -9,6 +9,7 @@ services:
 
 env:
     global:
+        - BUILD_TIMEOUT="119"
         - TESTS_BASE="
             run/log
             run/gtest
@@ -128,8 +129,8 @@ matrix:
 
 script:
     - ccache -s -z -F0 -M3G
-    - echo "Running for $[49*60-$(cut -f1 -d. /proc/uptime)]s"
-    - timeout $[49*60-$(cut -f1 -d. /proc/uptime)] docker run
+    - echo "Running for $[${BUILD_TIMEOUT}*60-$(cut -f1 -d. /proc/uptime)]s"
+    - timeout $[${BUILD_TIMEOUT}*60-$(cut -f1 -d. /proc/uptime)] docker run
          -e GNOOS_TESTS=${GNOOS_TESTS}
          -v $PWD:/gart
          -v $HOME/.ccache:/ccache
