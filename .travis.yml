@@ -38,13 +38,15 @@ env:
             run/test/libnativebridge/ReSetupNativeBridge
             run/test/libnativebridge/UnavailableNativeBridge
             run/test/libnativebridge/ValidNameNativeBridge
-            run/test/libziparchive"
+            run/test/libziparchive
+            run/test/vixl
+          "
         - TESTS_LIBLZ4="run/test/liblz4"
         - TESTS_GART="test/libart-compiler"
-        - TESTS_VIXL="run/test/vixl"
 
         - LINUX_X86_64_LINUX="x86_64 linux linux"
         - NOVA_X86_64_PC="x86_64 nova pc"
+        - SEL4_X86_32_PC="x86_32 sel4 pc"
         - FOC_ARM_V8A_RPI3="arm_v8a foc rpi3"
         - FOC_ARM_V7A_PBXA9="arm_v7a foc pbxa9"
 
@@ -109,6 +111,17 @@ matrix:
           env: TESTS=TESTS_GART
                PLATFORM=FOC_ARM_V7A_PBXA9
                OPTS=OPTS_QEMU
+
+        - name: "sel4-x86_32-pc: base tests + lz4"
+          env: TESTS=TESTS_BASE
+               EXTRA=TESTS_LIBLZ4
+               PLATFORM=SEL4_X86_32_PC
+               OPTS=OPTS_QEMU_ISO
+
+        - name: "sel4-x86_32-pc: GART tests"
+          env: TESTS=TESTS_GART
+               PLATFORM=SEL4_X86_32_PC
+               OPTS=OPTS_QEMU_ISO
 
         - name: "Soong tests"
           env: GNOOS_TESTS=1
