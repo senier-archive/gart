@@ -38,8 +38,9 @@ CC_OPT_entrypoints/quick/quick_dexcache_entrypoints += -D'__attribute__(x)='
 ANDROID_EXCLUDE_CC += arch/x86/fault_handler_x86.cc
 ANDROID_EXCLUDE_CC += arch/arm/fault_handler_arm.cc
 ANDROID_EXCLUDE_CC += arch/arm64/fault_handler_arm64.cc
-VPATH += $(REP_DIR)/src/libart
 SRC_CC += fault_handler_genode.cc
+
+vpath %.cc $(REP_DIR)/src/libart
 
 include $(call select_from_repositories,lib/mk/android-lib.inc)
 
