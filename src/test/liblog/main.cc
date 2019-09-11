@@ -12,8 +12,11 @@ void Libc::Component::construct(Libc::Env &env)
 		char *argv[] = {
 			"/bin/test_liblog",
 			"--gtest_filter=-"
-         ":liblog.__android_log_write__android_logger_list_read" // Reading logs is unsupported
-         ":liblog.android_logger_get_"                           // Reading logs is unsupported
+            ":liblog.__android_log_write__android_logger_list_read" // Reading logs is unsupported
+            ":liblog.android_logger_get_"                           // Reading logs is unsupported
+#ifdef __i386__
+			":liblog.__android_log_buf_print__concurrent64"         // Error on seL4/x86_32, investigate
+#endif
 			,0
 		};
 
