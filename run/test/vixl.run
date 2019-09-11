@@ -16,7 +16,7 @@ create_boot_directory
 # Generate config
 #
 
-install_config {
+set config {
 <config verbose="yes">
 	<parent-provides>
 		<service name="ROM"/>
@@ -53,7 +53,6 @@ install_config {
 			</vfs>
 			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" rng="/dev/random"/>
          <start name="/bin/vixl_test">
-
             <arg value="AARCH32_ASSEMBLER_COND_DT_DRT_DRD_DRN_DRM_FLOAT_F32_ONLY_vabd_T32"/>
             <arg value="AARCH32_ASSEMBLER_COND_DT_DRT_DRD_DRN_DRM_FLOAT_F32_ONLY_vceq_T32"/>
             <arg value="AARCH32_ASSEMBLER_COND_DT_DRT_DRD_DRN_DRM_FLOAT_F32_ONLY_vcge_T32"/>
@@ -1277,10 +1276,8 @@ install_config {
             <arg value="AARCH64_SIM_fcvtzu_ws"/>
             <arg value="AARCH64_SIM_fcvtzu_xd"/>
             <arg value="AARCH64_SIM_fcvtzu_xs"/>
-            <arg value="AARCH64_SIM_fdiv_2D"/>
             <arg value="AARCH64_SIM_fdiv_2S"/>
             <arg value="AARCH64_SIM_fdiv_4S"/>
-            <arg value="AARCH64_SIM_fdiv_d"/>
             <arg value="AARCH64_SIM_fdiv_s"/>
             <arg value="AARCH64_SIM_fmax_2D"/>
             <arg value="AARCH64_SIM_fmax_2S"/>
@@ -1330,24 +1327,16 @@ install_config {
             <arg value="AARCH64_SIM_fmls_S_S_S"/>
             <arg value="AARCH64_SIM_fmov_d"/>
             <arg value="AARCH64_SIM_fmov_s"/>
-            <arg value="AARCH64_SIM_fmul_2D"/>
-            <arg value="AARCH64_SIM_fmul_2D_2D_D"/>
             <arg value="AARCH64_SIM_fmul_2S"/>
             <arg value="AARCH64_SIM_fmul_2S_2S_S"/>
             <arg value="AARCH64_SIM_fmul_4S"/>
             <arg value="AARCH64_SIM_fmul_4S_4S_S"/>
-            <arg value="AARCH64_SIM_fmul_D_D_D"/>
             <arg value="AARCH64_SIM_fmul_S_S_S"/>
-            <arg value="AARCH64_SIM_fmul_d"/>
             <arg value="AARCH64_SIM_fmul_s"/>
-            <arg value="AARCH64_SIM_fmulx_2D"/>
-            <arg value="AARCH64_SIM_fmulx_2D_2D_D"/>
             <arg value="AARCH64_SIM_fmulx_2S"/>
             <arg value="AARCH64_SIM_fmulx_2S_2S_S"/>
             <arg value="AARCH64_SIM_fmulx_4S"/>
             <arg value="AARCH64_SIM_fmulx_4S_4S_S"/>
-            <arg value="AARCH64_SIM_fmulx_D"/>
-            <arg value="AARCH64_SIM_fmulx_D_D_D"/>
             <arg value="AARCH64_SIM_fmulx_S"/>
             <arg value="AARCH64_SIM_fmulx_S_S_S"/>
             <arg value="AARCH64_SIM_fneg_2D"/>
@@ -1355,7 +1344,6 @@ install_config {
             <arg value="AARCH64_SIM_fneg_4S"/>
             <arg value="AARCH64_SIM_fneg_d"/>
             <arg value="AARCH64_SIM_fneg_s"/>
-            <arg value="AARCH64_SIM_fnmul_d"/>
             <arg value="AARCH64_SIM_fnmul_s"/>
             <arg value="AARCH64_SIM_frecpe_2D"/>
             <arg value="AARCH64_SIM_frecpe_2S"/>
@@ -1410,10 +1398,8 @@ install_config {
             <arg value="AARCH64_SIM_frsqrts_2S"/>
             <arg value="AARCH64_SIM_frsqrts_4S"/>
             <arg value="AARCH64_SIM_frsqrts_S"/>
-            <arg value="AARCH64_SIM_fsqrt_2D"/>
             <arg value="AARCH64_SIM_fsqrt_2S"/>
             <arg value="AARCH64_SIM_fsqrt_4S"/>
-            <arg value="AARCH64_SIM_fsqrt_d"/>
             <arg value="AARCH64_SIM_fsqrt_s"/>
             <arg value="AARCH64_SIM_fsub_2D"/>
             <arg value="AARCH64_SIM_fsub_2S"/>
@@ -2356,8 +2342,25 @@ install_config {
             <arg value="SCOPES_ExactAssemblyScope_Open_Close_64"/>
             <arg value="SCOPES_ExactAssemblyScope_basic_64"/>
             <arg value="SCOPES_ExactAssemblyScope_scope_with_pools_64"/>
+}
 
-<!-- !armv7
+append_if [expr ![have_spec x86_32]] config {
+            <arg value="AARCH64_SIM_fdiv_2D"/>
+            <arg value="AARCH64_SIM_fdiv_d"/>
+            <arg value="AARCH64_SIM_fmul_2D"/>
+            <arg value="AARCH64_SIM_fmul_2D_2D_D"/>
+            <arg value="AARCH64_SIM_fmul_D_D_D"/>
+            <arg value="AARCH64_SIM_fmul_d"/>
+            <arg value="AARCH64_SIM_fmulx_2D"/>
+            <arg value="AARCH64_SIM_fmulx_2D_2D_D"/>
+            <arg value="AARCH64_SIM_fmulx_D"/>
+            <arg value="AARCH64_SIM_fmulx_D_D_D"/>
+            <arg value="AARCH64_SIM_fnmul_d"/>
+            <arg value="AARCH64_SIM_fsqrt_2D"/>
+            <arg value="AARCH64_SIM_fsqrt_d"/>
+}
+
+append_if [expr ![have_spec arm_v7a]] config {
             <arg value="AARCH32_SIMULATOR_COND_DT_DRT_DRD_DRN_DRM_FLOAT_F64_Vadd_T32"/>
             <arg value="AARCH32_SIMULATOR_COND_DT_DRT_DRD_DRN_DRM_FLOAT_F64_Vsub_T32"/>
             <arg value="AARCH32_SIMULATOR_COND_RDLOW_OPERAND_IMM8_Cmp_T32"/>
@@ -2608,35 +2611,44 @@ install_config {
             <arg value="AARCH32_SIMULATOR_RD_RN_RM_Crc32cw_T32"/>
             <arg value="AARCH32_SIMULATOR_RD_RN_RM_Crc32h_T32"/>
             <arg value="AARCH32_SIMULATOR_RD_RN_RM_Crc32w_T32"/>
-            <arg value="AARCH64_ASM_printf"/>
-            <arg value="AARCH64_ASM_printf_no_preserve"/>
-            <arg value="AARCH64_DISASM_address_map"/>
-            <arg value="AARCH64_SIM_fmadd_d"/>
             <arg value="AARCH64_SIM_fmadd_s"/>
-            <arg value="AARCH64_SIM_fmla_2D"/>
-            <arg value="AARCH64_SIM_fmla_2D_2D_D"/>
             <arg value="AARCH64_SIM_fmla_2S"/>
             <arg value="AARCH64_SIM_fmla_2S_2S_S"/>
             <arg value="AARCH64_SIM_fmla_4S"/>
             <arg value="AARCH64_SIM_fmla_4S_4S_S"/>
-            <arg value="AARCH64_SIM_fmla_D_D_D"/>
-            <arg value="AARCH64_SIM_fmls_2D"/>
-            <arg value="AARCH64_SIM_fmls_2D_2D_D"/>
             <arg value="AARCH64_SIM_fmls_2S"/>
             <arg value="AARCH64_SIM_fmls_2S_2S_S"/>
             <arg value="AARCH64_SIM_fmls_4S"/>
             <arg value="AARCH64_SIM_fmls_4S_4S_S"/>
-            <arg value="AARCH65_SIM_fmls_D_D_D"/>
-            <arg value="AARCH64_SIM_fmsub_d"/>
             <arg value="AARCH64_SIM_fmsub_s"/>
-            <arg value="AARCH64_SIM_fnmadd_d"/>
             <arg value="AARCH64_SIM_fnmadd_s"/>
-            <arg value="AARCH64_SIM_fnmsub_d"/>
             <arg value="AARCH64_SIM_fnmsub_s"/>
+}
+
+append_if [expr ![have_spec arm_v7a] && ![have_spec x86_32]] config {
+            <arg value="AARCH64_DISASM_address_map"/>
+            <arg value="AARCH64_SIM_fmla_2D_2D_D"/>
+            <arg value="AARCH64_SIM_fmla_2D"/>
+            <arg value="AARCH64_SIM_fmla_D_D_D"/>
+            <arg value="AARCH64_SIM_fmls_2D_2D_D"/>
+            <arg value="AARCH64_SIM_fmls_2D"/>
+            <arg value="AARCH64_SIM_fmls_D_D_D"/>
             <arg value="AARCH64_SIM_frecps_2D"/>
             <arg value="AARCH64_SIM_frecps_D"/>
             <arg value="AARCH64_SIM_frsqrts_2D"/>
             <arg value="AARCH64_SIM_frsqrts_D"/>
+}
+
+append_if [expr ![have_spec arm_v7a] && ![have_spec x86_64] && ![have_spec x86_32]] config {
+            <arg value="AARCH64_ASM_printf"/>
+            <arg value="AARCH64_ASM_printf_no_preserve"/>
+            <arg value="AARCH64_SIM_fmadd_d"/>
+            <arg value="AARCH64_SIM_fmsub_d"/>
+            <arg value="AARCH64_SIM_fnmadd_d"/>
+            <arg value="AARCH64_SIM_fnmsub_d"/>
+}
+
+append_if [expr ![have_spec arm_v7a] && ![have_spec arm_v8a] && ![have_spec x86_64] && ![have_spec x86_32]] config {
             <arg value="TRACE_all"/>
             <arg value="TRACE_all_colour"/>
             <arg value="TRACE_branch"/>
@@ -2655,7 +2667,9 @@ install_config {
             <arg value="TRACE_vregs_colour"/>
             <arg value="TRACE_write"/>
             <arg value="TRACE_write_colour"/>
--->
+}
+
+append config {
          </start>
 		</config>
       <route>
@@ -2664,6 +2678,8 @@ install_config {
       </route>
 	</start>
 </config>}
+
+install_config $config
 
 #
 # Boot image
