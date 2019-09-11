@@ -69,7 +69,7 @@ git fetch --all
 git checkout componolit/gart
 
 # Setup external repos
-git clone -b gtest_base_linux https://github.com/Componolit/genode-world.git ${GENODE_DIR}/repos/world
+git clone https://github.com/Componolit/genode-world.git ${GENODE_DIR}/repos/world
 ln -sf /gart ${GENODE_DIR}/repos/gart
 
 # Set up build dir
