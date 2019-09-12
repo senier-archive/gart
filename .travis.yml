@@ -113,9 +113,8 @@ matrix:
                PLATFORM=FOC_ARM_V7A_PBXA9
                OPTS=OPTS_QEMU
 
-        - name: "sel4-x86_32-pc: base tests + lz4"
+        - name: "sel4-x86_32-pc: base tests"
           env: TESTS=TESTS_BASE
-               EXTRA=TESTS_LIBLZ4
                PLATFORM=SEL4_X86_32_PC
                OPTS=OPTS_QEMU_ISO
 
