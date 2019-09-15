@@ -8,13 +8,17 @@
 #include <stdlib.h>
 #include <string.h>
 
+// GART includes
+#include <gart/env.h>
+
 enum { MAX_ARGS = 4096 };
 
 extern "C" int main (int argc, const char **argv);
 
 void Libc::Component::construct(Libc::Env &env)
 {
-   Genode::Attached_rom_dataspace config { env, "config" };
+    Genode::Attached_rom_dataspace config { env, "config" };
+    gart::init_genode_env(env);
 
 	Libc::with_libc([&] {
 
