@@ -1,10 +1,18 @@
+// Genode includes
 #include <base/log.h>
 #include <base/exception.h>
 #include <dataspace/client.h>
 #include <util/string.h>
 
-#include <gart/env.h>
+// Android includes
 #include <android-base/stringprintf.h>
+#include <base/bit_utils.h>
+#include <base/globals.h>
+
+// GART includes
+#include <gart/env.h>
+
+// local includes
 #include "mem_map.h"
 
 class Assertion_failed : Genode::Exception { };
@@ -153,9 +161,29 @@ namespace art {
         return false;
     }
 
+#define PointerDiff(a, b) reinterpret_cast<size_t>(reinterpret_cast<uintptr_t>(a) - reinterpret_cast<uintptr_t>(b))
+
     void MemMap::SetSize(size_t new_size)
     {
-        Genode::warning(__PRETTY_FUNCTION__, ": not implemented");
+        size_t new_base_size = RoundUp(new_size + PointerDiff(begin_, base_begin_), kPageSize);
+        if (new_base_size == base_size_)
+        {
+            size_ = new_size;
+            return;
+        }
+
+        address_space_.detach(Genode::Region_map::Local_addr(base_begin_));
+        Genode::Region_map::Local_addr result = address_space_.attach(/* ds */ ram_ds_cap_,
+                                                                      /* size */ new_base_size,
+                                                                      /* offset */ 0,
+                                                                      /* use_local_addr */ true,
+                                                                      /* local_addr */ begin_,
+                                                                      /* executable */ prot_ && PROT_EXEC,
+                                                                      /* writeable */ prot_ && PROT_WRITE);
+        Genode::log("SetSize ", Genode::Hex(size_), " -> ", Genode::Hex(new_size),
+            " (", Genode::Hex(base_size_), " -> ", Genode::Hex(new_base_size), ")");
+        base_size_ = new_base_size;
+        size_ = new_size;
     }
 
     MemMap* MemMap::MapFileAtAddress(uint8_t* addr,
