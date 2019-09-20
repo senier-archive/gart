@@ -3,11 +3,15 @@
 #include <base/exception.h>
 #include <dataspace/client.h>
 #include <util/string.h>
+#include <region_map/region_map.h>
 
 // Android includes
 #include <android-base/stringprintf.h>
 #include <base/bit_utils.h>
 #include <base/globals.h>
+
+// stdc++ includes
+#include <atomic>
 
 // GART includes
 #include <gart/env.h>
@@ -18,6 +22,8 @@
 class Assertion_failed : Genode::Exception { };
 
 #define assert(invariant, message) if (!(invariant)) { Genode::error(message ": " #invariant); throw Assertion_failed(); }
+
+static std::atomic_size_t lowmem_base = 0x1000;
 
 namespace art {
 
@@ -51,7 +57,12 @@ namespace art {
         assert ((prot & ~0x15UL) == 0, "Unsupported protection bits");
         assert (reuse == 0, "Reuse not implemented");
 
-        bool lowmem = (prot && PROT_LOWMEM) > 0;
+        bool lowmem =
+#ifdef __LP64__
+            (prot && PROT_LOWMEM) > 0;
+#else
+            false;
+#endif
 
         if (!(prot && PROT_READ))
         {
@@ -63,23 +74,34 @@ namespace art {
             throw Error("Address not page-aligned");
         };
 
-        Genode::Region_map::Local_addr result = address_space_.attach(/* ds */ ram_ds_cap_,
-                                                                      /* size */ 0,
-                                                                      /* offset */ 0,
-                                                                      /* use_local_addr */ begin != nullptr,
-                                                                      /* local_addr */ begin,
-                                                                      /* executable */ prot && PROT_EXEC,
-                                                                      /* writeable */ prot && PROT_WRITE);
-
-        begin_ = result;
-
         Genode::Dataspace_client ds(ram_ds_cap_);
         size_ = ds.size();
 
-        base_begin_ = (void *)begin;
-        base_size_ = size_;
+        int tries = 0;
+        bool done = false;
+        if (lowmem && begin == nullptr)
+        {
+            size_t adjust = 0x1000;
+            for (size_t b = lowmem_base; !done && b < (1UL << 32 - size_); b += adjust, tries += 1)
+            {
+                try {
+                    begin_ = address_space_.attach(ram_ds_cap_, 0, 0, true, reinterpret_cast<void *>(b), prot && PROT_EXEC, prot && PROT_WRITE);
+                    done = true;
+                } catch (Genode::Region_map::Region_conflict) { adjust *= 2; }
+            }
+            if (!done)
+            {
+                throw Error("Error mapping low-mem");
+            }
+            size_t new_base = lowmem_base.load() + size_;
+            lowmem_base.store(new_base);
+        } else
+        {
+            begin_= address_space_.attach(ram_ds_cap_, 0, 0, begin != nullptr, begin, prot && PROT_EXEC, prot && PROT_WRITE);
+        }
 
-        Genode::log("Mapped \"", name.c_str(), "\" (", size, ") to ", Genode::Hex(result));
+        base_begin_ = (void *)begin_;
+        base_size_ = size_;
     };
 
     MemMap::~MemMap()
@@ -107,14 +129,22 @@ namespace art {
                                       /* reuse        */ reuse,
                                       /* redzone_size */ 0);
 
-            assert ((reinterpret_cast<uintptr_t>(result->BaseBegin()) >> 32) == 0
-                    && (reinterpret_cast<uintptr_t>(result->BaseEnd()) >> 32) == 0,
+#ifdef __LP64__
+            assert (!low_4gb
+                   || (reinterpret_cast<unsigned long>(result->BaseBegin()) < (1UL << 32)
+                      && reinterpret_cast<unsigned long>(result->BaseEnd()) < (1UL << 32)),
                     "low_4gb not honored");
+#endif
 
             return result;
         } catch (Error e)
         {
+            Genode::error("ErroR: ", error_msg->c_str());
             e.message(error_msg);
+            return nullptr;
+        } catch (...)
+        {
+            Genode::error(__func__, ": Unknown error");
             return nullptr;
         }
     }
@@ -161,7 +191,7 @@ namespace art {
         return false;
     }
 
-#define PointerDiff(a, b) reinterpret_cast<size_t>(reinterpret_cast<uintptr_t>(a) - reinterpret_cast<uintptr_t>(b))
+#define PointerDiff(a, b) (size_t)(reinterpret_cast<uintptr_t>(a) - reinterpret_cast<uintptr_t>(b))
 
     void MemMap::SetSize(size_t new_size)
     {
@@ -180,8 +210,6 @@ namespace art {
                                                                       /* local_addr */ begin_,
                                                                       /* executable */ prot_ && PROT_EXEC,
                                                                       /* writeable */ prot_ && PROT_WRITE);
-        Genode::log("SetSize ", Genode::Hex(size_), " -> ", Genode::Hex(new_size),
-            " (", Genode::Hex(base_size_), " -> ", Genode::Hex(new_base_size), ")");
         base_size_ = new_base_size;
         size_ = new_size;
     }
@@ -208,7 +236,7 @@ namespace art {
             return;
         }
 
-        if (!kMadviseZeroes)
+        if (prot_ && PROT_WRITE && !kMadviseZeroes)
         {
             Genode::memset(base_begin_, 0, base_size_);
         }
