@@ -2,6 +2,7 @@
 #include <libc/component.h>
 #include <base/attached_rom_dataspace.h>
 #include <util/xml_node.h>
+#include <base/exception.h>
 
 /* libc includes */
 #include <stdio.h>
@@ -13,6 +14,8 @@
 
 enum { MAX_ARGS = 4096 };
 
+class Env_Error : Genode::Exception { };
+
 extern "C" int main (int argc, const char **argv);
 
 void Libc::Component::construct(Libc::Env &env)
@@ -23,8 +26,8 @@ void Libc::Component::construct(Libc::Env &env)
 	Libc::with_libc([&] {
 
        typedef Genode::String<512> Value;
-       int argc = 0;
-		 const char *argv[MAX_ARGS];
+       int rv, argc = 0;
+       const char *argv[MAX_ARGS];
 
        try {
          auto args = config.xml().sub_node("start");
@@ -32,6 +35,15 @@ void Libc::Component::construct(Libc::Env &env)
 
          args.for_each_sub_node("arg", [&] (Genode::Xml_node arg_node) {
              argv[argc++] = strdup(arg_node.attribute_value("value", Value("ERROR")).string());
+         });
+         args.for_each_sub_node("env", [&] (Genode::Xml_node arg_node) {
+             rv = setenv
+                (arg_node.attribute_value("name", Value("=")).string(),
+                 arg_node.attribute_value("value", Value("=")).string(),
+                 0);
+             if (rv != 0) {
+                 throw Env_Error();
+             }
          });
        } catch (Genode::Xml_node::Nonexistent_sub_node) {
          fprintf(stderr, "Invalid main() configuration, add <start> node\n");
