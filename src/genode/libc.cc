@@ -1,9 +1,9 @@
 #include <base/log.h>
-#include <base/exception.h>
 
 #include <signal.h>
 #include <errno.h>
 #include <sched.h>
+#include <stdlib.h>
 
 #define NOT_IMPLEMENTED Genode::warning(__func__, ": not implemented")
 
@@ -20,7 +20,10 @@ int raise(int sig) {
     {
         case SIGKILL:
             Genode::error("Program killed by raise(SIGKILL)");
-            throw Raise();
+            exit(1);
+        case SIGABRT:
+            Genode::error("Program aborted");
+            exit(1);
         default:
             Genode::error("raise(", sig, ")");
             return -1;
