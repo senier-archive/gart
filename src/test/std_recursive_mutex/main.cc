@@ -55,12 +55,6 @@ int main() {
    pthread_attr_t tattr;
    pthread_t t1, t2;
 
-   pthread_mutexattr_t attrs;
-   pthread_mutexattr_init (&attrs);
-   pthread_mutexattr_settype (&attrs, PTHREAD_MUTEX_RECURSIVE);
-   pthread_mutex_init (&counter_mutex, &attrs);
-   pthread_mutexattr_destroy(&attrs);
-
    pthread_attr_init(&tattr);
 
    rv = pthread_create(&t1, &tattr, thread, (void *)&p1);
