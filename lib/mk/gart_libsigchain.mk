@@ -5,6 +5,10 @@ ANDROID_SOURCES	 = sigchainlib
 ANDROID_INCLUDES	 = sigchainlib
 ANDROID_SECTIONS	 = /cc_library_static[@name=libsigchain_dummy]
 
+VPATH += $(REP_DIR)/src/sigchainlib
+ANDROID_EXCLUDE_CC += sigchain_dummy.cc
+SRC_CC += sigchain_genode.cc
+
 # Options unsupported by GCC
 ANDROID_EXCLUDE_OPT += -Wint-to-void-pointer-cast
 ANDROID_EXCLUDE_OPT += -Wthread-safety
