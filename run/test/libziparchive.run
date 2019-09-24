@@ -60,7 +60,7 @@ install_config {
                <inline name="random">3d32200c56d42fac0ed8dada9d9b33e7</inline>
 				</dir>
 			</vfs>
-			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" rng="/dev/random" />
+			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" />
          <start name="/bin/libziparchive_test">
             <arg value="--test_data_dir=/testdata"/>
          </start>
