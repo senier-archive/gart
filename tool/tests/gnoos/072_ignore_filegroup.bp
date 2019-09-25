@@ -1,0 +1,10 @@
+section_1 {
+	name: "sec1",
+	srcs: ["data1", "data2", ":fg1"]
+}
+
+filegroup {
+	name: "fg1",
+	srcs: ["data3", ":missing_filegroup", "data4"],
+	elem2: ["data5", "data6"]
+}
