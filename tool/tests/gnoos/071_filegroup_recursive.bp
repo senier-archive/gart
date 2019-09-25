@@ -1,0 +1,16 @@
+section_1 {
+	name: "sec1",
+	srcs: ["data1", "data2", ":fg1"]
+}
+
+filegroup {
+	name: "fg1",
+	srcs: ["data3", ":fg2", "data4"],
+	elem2: ["data5", "data6"]
+}
+
+filegroup {
+	name: "fg2",
+	srcs: ["data7", "data8"],
+	elem3: ["data9", "data10"]
+}

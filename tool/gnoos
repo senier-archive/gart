@@ -345,14 +345,19 @@ class Soong:
         if not isinstance(srcs, list):
             raise DefaultsNoList('srcs not of list type')
 
-        for fg in [s for s in srcs if s.startswith(':')]:
-            try:
-                fgsec = self.query('/filegroup[@name={}]'.format(fg[1:]))
-            except NotFound:
-                raise MissingFilegroup('Filegroup "{fg}" not found in {name}'.format(fg=fg, name=secdata['name']))
-            self.resolve_filegroup(fgsec[1])
-            secdata['srcs'].remove (fg)
-            secdata['srcs'].extend (fgsec[1]['srcs'])
+        newsrc = []
+        for fg in srcs:
+            if fg.startswith(':'):
+                try:
+                    fgsec = self.query('/filegroup[@name={}]'.format(fg[1:]))
+                except NotFound:
+                    raise MissingFilegroup('Filegroup "{fg}" not found in {name}'.format(fg=fg, name=secdata['name']))
+                self.resolve_filegroup(fgsec[1])
+                newsrc.extend (fgsec[1]['srcs'])
+            else:
+                newsrc.append(fg)
+
+        secdata['srcs'] = newsrc
 
     def resolve_filegroups(self):
 
@@ -1047,6 +1052,13 @@ class TestSoong(unittest.TestCase):
         """
         with self.assertRaises(MissingFilegroup):
             self.parse("070_missing_filegroup")
+
+    def test_071(self):
+        """
+        Import elements recursively from special filegroup modules using :name construct.
+        """
+        self.assert_query("071_filegroup_recursive", '/section_1',
+                          ('section_1', {'name': 'sec1', 'srcs': ['data1', 'data2', 'data3', 'data7', 'data8', 'data4']}))
 
 if __name__ == "__main__":
 
