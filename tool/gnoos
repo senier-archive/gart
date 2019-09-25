@@ -349,7 +349,7 @@ class Soong:
             try:
                 fgsec = self.query('/filegroup[@name={}]'.format(fg[1:]))
             except NotFound:
-                raise MissingFilegroup
+                raise MissingFilegroup('Filegroup "{fg}" not found in {name}'.format(fg=fg, name=secdata['name']))
             self.resolve_filegroup(fgsec[1])
             secdata['srcs'].remove (fg)
             secdata['srcs'].extend (fgsec[1]['srcs'])
@@ -1111,14 +1111,14 @@ if __name__ == "__main__":
         PARSER.print_help()
         sys.exit(1)
 
-    SOONG_PARSER = Soong(ARGS.basedir)
-    for soong_file in ARGS.input:
-        SOONG_PARSER.parse(soong_file)
-
-    SOONG_PARSER.resolve_defaults()
-    SOONG_PARSER.resolve_filegroups()
-
     try:
+        SOONG_PARSER = Soong(ARGS.basedir)
+        for soong_file in ARGS.input:
+            SOONG_PARSER.parse(soong_file)
+
+        SOONG_PARSER.resolve_defaults()
+        SOONG_PARSER.resolve_filegroups()
+
         QUERY_TEXT = "|".join(ARGS.queries)
         QUERY_RESULT = SOONG_PARSER.query(QUERY_TEXT)
         output = make_vars(QUERY_RESULT, QUERY_TEXT, ARGS.prefix, ARGS.variable)
@@ -1130,6 +1130,7 @@ if __name__ == "__main__":
         if output != old:
             with open(ARGS.output, 'w') as outfile:
                 outfile.write(output)
+
     except Exception as exception:
-        print('$(error ERROR EXECUTING GNOOS: ' + str(exception) + ')')
-        raise
+        print('Gnoos: {}'.format(exception), file=sys.stderr)
+        sys.exit(1)
