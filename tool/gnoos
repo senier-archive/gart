@@ -15,6 +15,9 @@ from pyparsing import \
 class MissingVariable(Exception):
     pass
 
+class MissingFilegroup(Exception):
+    pass
+
 class DuplicateVariable(Exception):
     pass
 
@@ -1005,6 +1008,19 @@ class TestSoong(unittest.TestCase):
         self.assert_data("068_numeric_literal", \
             [('section_1', {'value1': 1238, 'value2': '1238'})])
 
+    def test_069(self):
+        """
+        Import elements from special filegroup modules using :name construct.
+        """
+        self.assert_query("069_use_filegroup", '/section_1',
+                          ('section_1', {'name': 'sec1', 'srcs': ['data1', 'data2', 'data3']}))
+
+    def test_070(self):
+        """
+        Reference missing file group
+        """
+        with self.assertRaises(MissingFilegroup):
+            self.parse("070_missing_filegroup")
 
 if __name__ == "__main__":
 
