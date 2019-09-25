@@ -317,7 +317,7 @@ class Soong:
 
     def resolve_default(self, secdata):
 
-        if not 'defaults' in secdata:
+        if 'defaults' not in secdata:
             return
 
         if not isinstance(secdata['defaults'], list):
@@ -334,6 +334,30 @@ class Soong:
 
         for sec in self.data():
             self.resolve_default(sec[1])
+
+    def resolve_filegroup(self, secdata):
+
+        if 'srcs' not in secdata:
+            return
+
+        srcs = secdata['srcs']
+
+        if not isinstance(srcs, list):
+            raise DefaultsNoList('srcs not of list type')
+
+        for fg in [s for s in srcs if s.startswith(':')]:
+            try:
+                fgsec = self.query('/filegroup[@name={}]'.format(fg[1:]))
+            except NotFound:
+                raise MissingFilegroup
+            self.resolve_filegroup(fgsec[1])
+            secdata['srcs'].remove (fg)
+            secdata['srcs'].extend (fgsec[1]['srcs'])
+
+    def resolve_filegroups(self):
+
+        for sec in self.data():
+            self.resolve_filegroup(sec[1])
 
 def make_vars(data, query, prefix='', variables=None):
 
@@ -380,6 +404,7 @@ class TestSoong(unittest.TestCase):
     def parse(self, filename):
         soong = Soong()
         soong.parse(self.fullpath(filename))
+        soong.resolve_filegroups()
         return soong
 
     def assert_data(self, filename, data):
@@ -393,6 +418,7 @@ class TestSoong(unittest.TestCase):
     def query(self, filename, querytext):
         soong = self.parse(filename)
         soong.resolve_defaults()
+        soong.resolve_filegroups()
         return soong.query(querytext)
 
     def assert_query(self, filename, querytext, data):
@@ -1013,7 +1039,7 @@ class TestSoong(unittest.TestCase):
         Import elements from special filegroup modules using :name construct.
         """
         self.assert_query("069_use_filegroup", '/section_1',
-                          ('section_1', {'name': 'sec1', 'srcs': ['data1', 'data2', 'data3']}))
+                          ('section_1', {'name': 'sec1', 'srcs': ['data1', 'data2', 'data3', 'data4']}))
 
     def test_070(self):
         """
@@ -1090,6 +1116,7 @@ if __name__ == "__main__":
         SOONG_PARSER.parse(soong_file)
 
     SOONG_PARSER.resolve_defaults()
+    SOONG_PARSER.resolve_filegroups()
 
     try:
         QUERY_TEXT = "|".join(ARGS.queries)
