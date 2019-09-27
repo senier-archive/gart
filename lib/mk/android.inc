@@ -4,11 +4,10 @@ check_android_vars := $(call _assert,$(ANDROID_PORT), ANDROID_PORT not set for $
 check_android_vars := $(call _assert,$(ANDROID_SECTIONS), ANDROID_SECTIONS not set for $(ANDROID_NAME))
 check_android_vars := $(call _assert,$(ANDROID_BUILDTYPE), ANDROID_BUILDTYPE not set for $(ANDROID_NAME))
 
-ANDROID_OUTPUT := $(LIB_CACHE_DIR)/$(ANDROID_BUILDTYPE)/$(ANDROID_NAME)/android.mk
-
 ANDROID_INCLUDES   ?= . include
 ANDROID_SOURCES    ?= .
 ANDROID_BUILDFILES ?= Android.bp
+ANDROID_UNDEFINED  ?=
 
 ANDROID_PORTDIR = $(call _port_dir,gart_$(ANDROID_PORT))
 
@@ -45,19 +44,23 @@ ANDROID_INCLUDES += $(GENSRCS_SUBDIR)
 ANDROID_SECTIONS +=	/gensrcs[@name=$(GENSRCS_SECTION)]
 endif
 
-COMMAND := \
-	mkdir -p $(dir $(ANDROID_OUTPUT)) && \
-	$(call select_from_repositories,tool/gnoos) \
+ANDROID_OUTPUT_DIR := $(LIB_CACHE_DIR)/$(ANDROID_BUILDTYPE)/$(ANDROID_NAME)
+
+define GNOOS
+$(shell mkdir -p $(ANDROID_OUTPUT_DIR) && \
+    $(call select_from_repositories,tool/gnoos) \
 		--basedir $(ANDROID_BASEDIR) \
-		--prefix $(ANDROID_NAME)_ \
-		--output $(ANDROID_OUTPUT) \
+		--prefix $(strip $(1))_ \
+		--output $(ANDROID_OUTPUT_DIR)/$(strip $(4)) \
 		--variable "BASEDIR:$(ANDROID_BASEDIR)" \
 		--variable "EXPORT_INCLUDE_DIRS:$(ANDROID_INCLUDES)" \
-		$(addprefix --input ,$(ANDROID_BUILDFILES)) \
-		$(ANDROID_SECTIONS)
+        $(addprefix --undefined ,$(ANDROID_UNDEFINED)) \
+		$(addprefix --input ,$(2)) \
+		$(3))
+$(eval include $(ANDROID_OUTPUT_DIR)/$(strip $(4)))
+endef
 
-DUMMY := $(shell $(COMMAND))
-include $(ANDROID_OUTPUT)
+$(call GNOOS, $(ANDROID_NAME), $(ANDROID_BUILDFILES), $(ANDROID_SECTIONS), android.mk)
 
 # Generate operator sources
 ifneq ($(GENSRCS_SECTION),)
@@ -67,6 +70,7 @@ endif
 SRC_C  += $(filter-out $(ANDROID_EXCLUDE_C),$(filter %.c,$($(ANDROID_NAME)_SRCS)))
 SRC_CC += $(filter-out $(ANDROID_EXCLUDE_CC),$(filter %.cpp %.cc,$($(ANDROID_NAME)_SRCS)))
 SRC_S  += $(filter-out $(ANDROID_EXCLUDE_S),$(filter %.S %.s,$($(ANDROID_NAME)_SRCS)))
+SRC_JAVA += $(filter-out $(ANDROID_EXCLUDE_JAVA),$(filter %.java,$($(ANDROID_NAME)_SRCS)))
 
 CC_OPT += $(filter-out $(ANDROID_EXCLUDE_OPT),$($(ANDROID_NAME)_CFLAGS))
 CC_OPT += $(filter-out $(ANDROID_EXCLUDE_OPT),$($(ANDROID_NAME)_CPPFLAGS))
@@ -85,6 +89,7 @@ vpath % $(addprefix $(ANDROID_BASEDIR)/,$(ANDROID_SOURCES))
 
 # Include these libraries by default
 ANDROID_LIBS += \
+   $($(ANDROID_NAME)_LIBS) \
    $($(ANDROID_NAME)_SHARED_LIBS) \
    $($(ANDROID_NAME)_STATIC_LIBS) \
    $($(ANDROID_NAME)_WHOLE_STATIC_LIBS)
@@ -92,7 +97,15 @@ ANDROID_LIBS += \
 # Filter out debug libraries
 NON_DEBUG_LIBS = $(sort $(ANDROID_LIBS:_debug=))
 
+ifeq ($(ANDROID_BUILDTYPE),jar)
+JAVA_JAR_NAME = $($(ANDROID_NAME)_NAME)
+JAVA_BASE_DIR = $($(ANDROID_NAME)_BASEDIR)
+JAVA_OPTS += $($(ANDROID_NAME)_JAVACFLAGS)
+include $(call select_from_repositories,lib/mk/gart_java.inc)
+else
 LIBS += libc cxx stdcxx
+endif
+
 LIBS += $(addprefix gart_,$(filter-out $(ANDROID_EXCLUDE_LIBS),$(NON_DEBUG_LIBS)))
 
 else
