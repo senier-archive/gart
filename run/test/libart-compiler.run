@@ -4,6 +4,7 @@
 
 set build_components {
 	core init timer
+	test/dummy_java_libs
 	test/libart-compiler
 }
 
@@ -54,6 +55,9 @@ install_config {
 					<inline name="rtc">2018-01-01 00:01</inline>
 					<inline name="random">3d32200c56d42fac0ed8dada9d9b33e7</inline>
 				</dir>
+				<dir name="framework">
+					<tar name="framework.tar"/>
+				</dir>
 			</vfs>
 			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" />
 			<start name="/bin/libart-compiler_test">
@@ -66,6 +70,8 @@ install_config {
 #
 # Boot image
 #
+
+exec tar --transform s/.jar/-testdex.jar/ -cf bin/framework.tar -C bin core-libart.jar core-oj.jar
 
 # generic modules
 set boot_modules {
@@ -95,6 +101,7 @@ set boot_modules {
 	gart_libart-compiler.lib.so
 	gart_libicui18n.lib.so
 	libart-compiler_test
+	framework.tar
 }
 
 append_platform_drv_boot_modules
