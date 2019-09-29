@@ -44,6 +44,7 @@ env:
           "
         - TESTS_LIBLZ4="run/test/liblz4"
         - TESTS_GART="test/libart-compiler"
+        - TESTS_JAVA="test/dummy_java_libs"
 
         - LINUX_X86_64_LINUX="x86_64 linux linux"
         - NOVA_X86_64_PC="x86_64 nova pc"
@@ -76,7 +77,7 @@ matrix:
                PLATFORM=LINUX_X86_64_LINUX
                OPTS=OPTS_LINUX
 
-        - name: "linux-x86_64-linux: GART tests4"
+        - name: "linux-x86_64-linux: GART tests"
           env: TESTS=TESTS_GART
                PLATFORM=LINUX_X86_64_LINUX
                OPTS=OPTS_LINUX
@@ -122,6 +123,11 @@ matrix:
           env: TESTS=TESTS_GART
                PLATFORM=SEL4_X86_32_PC
                OPTS=OPTS_QEMU_ISO
+
+        - name: "linux-x86_64-linux: Java library tests"
+          env: TESTS=TESTS_JAVA
+               PLATFORM=LINUX_X86_64_LINUX
+               OPTS=OPTS_LINUX
 
         - name: "Soong tests"
           env: GNOOS_TESTS=1
