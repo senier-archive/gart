@@ -4,6 +4,7 @@ check_java_vars := $(call _assert,$(SRC_JAVA), SRC_JAVA not set for $(LIB))
 
 JAVAC ?= $(call select_from_ports,gart_jdk9)/jdk9/linux-x86/bin/javac
 JAR ?= $(call select_from_ports,gart_jdk9)/jdk9/linux-x86/bin/jar
+DX ?= $(call select_from_ports,gart_build-tools)/build-tools/common/bin/dx
 
 JAVA_OPTS += \
 	-source 1.8 \
@@ -42,25 +43,25 @@ CP = $(subst $(SPACE),:,$(strip $(JAVA_CLASSPATH)))
 SP = $(subst $(SPACE),:,$(strip $(JAVA_SOURCEPATH)))
 
 JAR_NAME = $(BUILD_BASE_DIR)/bin/$(JAVA_JAR_NAME).jar
-MANIFEST = $(LIB_CACHE_DIR)/$(LIB)/Manifest
 FILELIST = $(LIB_CACHE_DIR)/$(LIB)/files.lst
+
+DEX_OPTS += --min-sdk-version=26
 
 ifneq ($(called_from_lib_mk),)
 # FIXME: Can we depend on the .a file?
 all: $(JAR_NAME)
 endif
 
-extract = $(filter-out $1,$(foreach d,$2,$(patsubst $d/%,$d,$1)))
+VPATH += $(JAVA_SOURCEPATH)
 
-$(JAR_NAME): $(addprefix $(LIB_CACHE_DIR)/$(LIB)/,$(SRC_JAVA:.java=.class)) | $(MANIFEST)
+extract = $(filter-out $1,$(foreach d,$2,$(patsubst $d/%,%,$1)))
+
+$(JAR_NAME): $(call extract,$(SRC_JAVA:.java=.class),$(JAVA_SOURCE_DIRS))
 	$(MSG_MERGE)$(notdir $@)
 	$(file >$(FILELIST)) $(foreach O,$(patsubst $(LIB_CACHE_DIR)/$(LIB)/%,%,$^),$(file >>$(FILELIST),$O))
-	$(VERBOSE)$(JAR) cfm $@ $(MANIFEST) -C $(LIB_CACHE_DIR)/$(LIB) @$(FILELIST)
+	$(VERBOSE)$(DX) $(DEX_OPTS) --dex --output=$@ --input-list=$(FILELIST)
 	$(VERBOSE)rm -f $(FILELIST)
 
-$(MANIFEST):
-	$(VERBOSE)echo "Class-Path: $(JAVA_SOURCE_DIRS)/" > $@
-
-$(LIB_CACHE_DIR)/$(LIB)/%.class: $(JAVA_BASE_DIR)/%.java
+%.class: %.java
 	$(MSG_COMP)$*.java
-	$(VERBOSE)set -o pipefail; $(JAVAC) $(JAVA_OPTS) -d $(LIB_CACHE_DIR)/$(LIB)/$(call extract,$*,$(JAVA_SOURCE_DIRS)) -classpath "$(CP)" -sourcepath "$(SP)" $< |& sed '/^Note:/d'
+	$(VERBOSE)set -o pipefail; $(JAVAC) $(JAVA_OPTS) -d $(LIB_CACHE_DIR)/$(LIB) -classpath "$(CP)" -sourcepath "$(SP)" $< |& sed '/^Note:/d'

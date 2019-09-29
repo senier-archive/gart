@@ -101,6 +101,7 @@ ifeq ($(ANDROID_BUILDTYPE),jar)
 JAVA_JAR_NAME = $($(ANDROID_NAME)_NAME)
 JAVA_BASE_DIR = $($(ANDROID_NAME)_BASEDIR)
 JAVA_OPTS += $($(ANDROID_NAME)_JAVACFLAGS)
+DEX_OPTS += $($(ANDROID_NAME)_DXFLAGS)
 include $(call select_from_repositories,lib/mk/gart_java.inc)
 else
 LIBS += libc cxx stdcxx
