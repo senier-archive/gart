@@ -21,7 +21,7 @@
 
 class Assertion_failed : Genode::Exception { };
 
-#define assert(invariant, message) if (!(invariant)) { Genode::error(message ": " #invariant); throw Assertion_failed(); }
+#define assert(invariant, message) if (!(invariant)) { Genode::error(message ": " #invariant); exit(1); }
 
 static std::atomic_size_t lowmem_base = 0x1000;
 
@@ -46,7 +46,7 @@ namespace art {
                    int prot,
                    bool reuse,
                    size_t redzone_size) : name_(name)
-                                        , prot_(prot)
+                                        , prot_(prot & (~PROT_LOWMEM))
                                         , reuse_(reuse)
                                         , already_unmapped_(false)
                                         , redzone_size_(redzone_size)
@@ -54,54 +54,53 @@ namespace art {
                                         , ram_ds_cap_(env_.ram().alloc(size))
                                         , address_space_(env_.pd().address_space())
     {
-        assert ((prot & ~0x15UL) == 0, "Unsupported protection bits");
+        //Genode::log(__func__, ": ", name.c_str(), " @ ", Genode::Hex(reinterpret_cast<unsigned long>(begin)), " size=", size, " prot=", prot);
+        assert ((prot_ & ~0xfUL) == 0, "Unsupported protection bits");
         assert (reuse == 0, "Reuse not implemented");
+        assert ((reinterpret_cast<unsigned long>(begin) & 0xfff) == 0, "Address not page-aligned")
 
         bool lowmem =
 #ifdef __LP64__
-            (prot && PROT_LOWMEM) > 0;
+            (prot & PROT_LOWMEM) > 0;
 #else
             false;
 #endif
 
-        if (!(prot && PROT_READ))
+        if (!(prot_ & PROT_READ))
         {
-            throw Error("Non-accessible mapping unsupported");
+            Genode::warning("Non-accessible mapping unsupported, adding read permission");
+            prot_ |= PROT_READ;
         }
 
-        if ((reinterpret_cast<unsigned long>(begin) & 0xfff) != 0)
-        {
-            throw Error("Address not page-aligned");
-        };
-
         Genode::Dataspace_client ds(ram_ds_cap_);
-        size_ = ds.size();
+        size_ = size;
+        base_size_ = ds.size();
 
         int tries = 0;
         bool done = false;
         if (lowmem && begin == nullptr)
         {
             size_t adjust = 0x1000;
-            for (size_t b = lowmem_base; !done && b < (1UL << 32 - size_); b += adjust, tries += 1)
+            for (size_t b = lowmem_base; !done && b < (1UL << 32 - base_size_); b += adjust, tries += 1)
             {
                 try {
-                    begin_ = address_space_.attach(ram_ds_cap_, 0, 0, true, reinterpret_cast<void *>(b), prot && PROT_EXEC, prot && PROT_WRITE);
+                    begin_ = address_space_.attach(ram_ds_cap_, 0, 0, true, reinterpret_cast<void *>(b), prot_ & PROT_EXEC, prot_ & PROT_WRITE);
                     done = true;
                 } catch (Genode::Region_map::Region_conflict) { adjust *= 2; }
             }
             if (!done)
             {
-                throw Error("Error mapping low-mem");
+                Genode::error("Error mapping low-mem");
+                throw 1;
             }
-            size_t new_base = lowmem_base.load() + size_;
+            size_t new_base = lowmem_base.load() + base_size_;
             lowmem_base.store(new_base);
         } else
         {
-            begin_= address_space_.attach(ram_ds_cap_, 0, 0, begin != nullptr, begin, prot && PROT_EXEC, prot && PROT_WRITE);
+            begin_= address_space_.attach(ram_ds_cap_, 0, 0, begin != nullptr, begin, prot_ & PROT_EXEC, prot_ & PROT_WRITE);
         }
 
         base_begin_ = (void *)begin_;
-        base_size_ = size_;
     };
 
     MemMap::~MemMap()
@@ -125,7 +124,7 @@ namespace art {
                                       /* size         */ byte_count,
                                       /* base_begin   */ addr,
                                       /* base_size    */ byte_count,
-                                      /* prot         */ prot || (low_4gb ? PROT_LOWMEM : 0),
+                                      /* prot         */ prot | (low_4gb ? PROT_LOWMEM : 0),
                                       /* reuse        */ reuse,
                                       /* redzone_size */ 0);
 
@@ -139,7 +138,7 @@ namespace art {
             return result;
         } catch (Error e)
         {
-            Genode::error("ErroR: ", error_msg->c_str());
+            Genode::error("Error: ", error_msg->c_str());
             e.message(error_msg);
             return nullptr;
         } catch (...)
@@ -187,8 +186,22 @@ namespace art {
 
     bool MemMap::Protect(int prot)
     {
-        Genode::warning(__PRETTY_FUNCTION__, ": not implemented");
-        return false;
+        if (prot == prot_)
+        {
+            return true;
+        }
+
+        try
+        {
+            address_space_.detach(base_begin_);
+            base_begin_= address_space_.attach(ram_ds_cap_, 0, 0, true, base_begin_, prot_ & PROT_EXEC, prot_ & PROT_WRITE);
+        } catch (Error e)
+        {
+            Genode::error("Error changing protection from ", prot_, " to ", prot);
+            return false;
+        }
+        prot_ = prot;
+        return true;
     }
 
 #define PointerDiff(a, b) (size_t)(reinterpret_cast<uintptr_t>(a) - reinterpret_cast<uintptr_t>(b))
@@ -208,8 +221,8 @@ namespace art {
                                                                       /* offset */ 0,
                                                                       /* use_local_addr */ true,
                                                                       /* local_addr */ begin_,
-                                                                      /* executable */ prot_ && PROT_EXEC,
-                                                                      /* writeable */ prot_ && PROT_WRITE);
+                                                                      /* executable */ prot_ & PROT_EXEC,
+                                                                      /* writeable */ prot_ & PROT_WRITE);
         base_size_ = new_base_size;
         size_ = new_size;
     }
@@ -236,7 +249,7 @@ namespace art {
             return;
         }
 
-        if (prot_ && PROT_WRITE && !kMadviseZeroes)
+        if (prot_ & PROT_WRITE && !kMadviseZeroes)
         {
             Genode::memset(base_begin_, 0, base_size_);
         }
