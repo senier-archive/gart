@@ -56,7 +56,20 @@ VPATH += $(JAVA_SOURCEPATH)
 
 extract = $(filter-out $1,$(foreach d,$2,$(patsubst $d/%,%,$1)))
 
-$(JAR_NAME): $(call extract,$(SRC_JAVA:.java=.class),$(JAVA_SOURCE_DIRS))
+SRC_JAVA_SORTED = $(sort $(SRC_JAVA))
+JAVA_CLASSES = $(call extract,$(SRC_JAVA_SORTED:.java=.class),$(JAVA_SOURCE_DIRS))
+
+ifneq ($(words $(sort $(JAVA_CLASSES))),$(words $(JAVA_CLASSES)))
+$(error JAVA_CLASSES has duplicates!)
+endif
+
+# Force ordering of java classes to serialize javac invocations
+RIGHT = $(filter-out $(firstword $(JAVA_CLASSES)), $(JAVA_CLASSES))
+LEFT  = $(filter-out $(lastword $(JAVA_CLASSES)), $(JAVA_CLASSES))
+PAIRS = $(join $(LEFT),$(addprefix :,$(RIGHT)))
+$(foreach pair,$(PAIRS),$(eval $(pair)))
+
+$(JAR_NAME): $(JAVA_CLASSES)
 	$(MSG_MERGE)$(notdir $@)
 	$(file >$(FILELIST)) $(foreach O,$(patsubst $(LIB_CACHE_DIR)/$(LIB)/%,%,$^),$(file >>$(FILELIST),$O))
 	$(VERBOSE)$(DX) $(DEX_OPTS) --dex --output=$@ --input-list=$(FILELIST)
