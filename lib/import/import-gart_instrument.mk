@@ -1,1 +1,1 @@
-CC_OPT += -finstrument-functions
+CC_OPT += -finstrument-functions -g
