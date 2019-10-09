@@ -2,8 +2,13 @@ check_java_vars := $(call _assert,$(JAVA_BASE_DIR), JAVA_BASE_DIR not set for $(
 check_java_vars := $(call _assert,$(JAVA_JAR_NAME), JAVA_JAR_NAME not set for $(LIB))
 check_java_vars := $(call _assert,$(SRC_JAVA), SRC_JAVA not set for $(LIB))
 
-JAVAC ?= $(call select_from_ports,gart_jdk9)/jdk9/linux-x86/bin/javac
-JAR ?= $(call select_from_ports,gart_jdk9)/jdk9/linux-x86/bin/jar
+GART_JDK9_PATH = $(call select_from_ports,gart_jdk9)/jdk9/linux-x86/bin
+
+# `dx` requires `java` to be in PATH
+export PATH := $(GART_JDK9_PATH):$(PATH)
+
+JAVAC ?= $(GART_JDK9_PATH)/javac
+JAR ?= $(GART_JDK9_PATH)/jar
 DX ?= $(call select_from_ports,gart_build-tools)/build-tools/common/bin/dx
 
 JAVA_OPTS += \
