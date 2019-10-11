@@ -18,8 +18,16 @@ class Env_Error : Genode::Exception { };
 
 extern "C" int main (int argc, const char **argv);
 
+#ifdef WAIT_FOR_DEBUGGER
+extern "C" void wait_for_continue();
+#define WAIT_FOR_CONTINUE Genode::log("WAITING FOR DEBUGGER..."); wait_for_continue()
+#else
+#define WAIT_FOR_CONTINUE
+#endif
+
 void Libc::Component::construct(Libc::Env &env)
 {
+    WAIT_FOR_CONTINUE;
     Genode::Attached_rom_dataspace config { env, "config" };
     gart::init_genode_env(env);
 
