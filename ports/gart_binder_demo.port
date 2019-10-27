@@ -1,0 +1,7 @@
+LICENSE   := AGPL
+VERSION   := git
+DOWNLOADS := gart_binder_demo.git
+
+URL(gart_binder_demo) := https://github.com/senier/binder_demo.git
+DIR(gart_binder_demo) := binder_demo
+REV(gart_binder_demo) := master
