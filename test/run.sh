@@ -56,6 +56,7 @@ REPOSITORIES += ${GD}/repos/libports
 REPOSITORIES += ${GD}/repos/ports
 REPOSITORIES += ${GD}/repos/world
 REPOSITORIES += ${GD}/repos/gart
+REPOSITORIES += ${GD}/repos/gems
 EOF
 }
 

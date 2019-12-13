@@ -5,6 +5,7 @@
 set build_components {
 	core init timer
 	lib/vfs/jitterentropy
+	lib/vfs/pipe
 	test/dummy_java_libs
 	test/libartbase
 }
@@ -55,6 +56,7 @@ install_config {
 					</dir>
 				</dir>
 				<dir name="dev">
+					<dir name="pipe"><pipe/></dir>
 					<log/>
 					<inline name="rtc">2018-01-01 00:01</inline>
 					<jitterentropy name="random"/>
@@ -63,8 +65,9 @@ install_config {
 					<tar name="framework.tar"/>
 				</dir>
 			</vfs>
-			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" rng="/dev/random" />
+			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" rng="/dev/random" pipe="/dev/pipe" />
 			<start name="/bin/libartbase_test">
+				<arg value="--gtest_filter=-FdFileTest.EraseWithPathUnlinks"/>
 				<env name="ANDROID_DATA" value="/data"/>
 			</start>
 		</config>
@@ -82,6 +85,7 @@ set boot_modules {
 	core init timer ld.lib.so
 	vfs.lib.so libc.lib.so libm.lib.so stdcxx.lib.so
 	vfs_jitterentropy.lib.so
+	vfs_pipe.lib.so
 	gtest.lib.so gart_liblog.lib.so
 	gart_libart.lib.so
 	gart_libbacktrace.lib.so
