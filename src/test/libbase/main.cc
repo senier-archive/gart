@@ -15,13 +15,9 @@ void Libc::Component::construct(Libc::Env &env)
 {
 	Libc::with_libc([&] {
 
-      // FIXME: genodelabs/genode#3476 prevents some tests from running. Retry when fixed.
 		char const *argv[] = {
 			"/bin/test_libbase",
 			"--gtest_filter=-"
-         ":logging.LOG_*_*"                                    // Componolit/Workarounds#4
-         ":logging.PLOG_*_*"                                   // Componolit/Workarounds#4
-         ":logging.UNIMPLEMENTED"                              // Componolit/Workarounds#4
          ":file.WriteStringToFile2"                            // Testing UNIX permissions, pointless on Genode
          ":file.ReadFileToString_capacity"                     // When reading a string, the test expects the result to
                                                                // only have a capacity only slightly larger than the
@@ -35,6 +31,7 @@ void Libc::Component::construct(Libc::Env &env)
          ":logging.DCHECK"                                     // Death test unsupported
          ":logging.LOG_FATAL"                                  // Death test unsupported
          ":logging.PLOG_FATAL"                                 // Death test unsupported
+         ":logging.LOG_FATAL_NOOP_ABORTER"                     // Death test unsupported
 			,0
 		};
 
