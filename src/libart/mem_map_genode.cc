@@ -103,6 +103,11 @@ namespace art {
         }
 
         base_begin_ = (void *)begin_;
+
+        // Initialize memory
+        void *b = address_space_.attach(ram_ds_cap_, 0, 0, false, nullptr, false, true);
+        Genode::memset(b, 0, base_size_);
+        address_space_.detach(b);
     };
 
     MemMap::~MemMap()
