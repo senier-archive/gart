@@ -27,6 +27,8 @@ static std::atomic_size_t lowmem_base = 0x1000;
 
 namespace art {
 
+    std::mutex* MemMap::mem_maps_lock_ = nullptr;
+
     class Error
     {
         private:
@@ -117,6 +119,7 @@ namespace art {
                                  std::string* error_msg,
                                  bool use_ashmem)
     {
+        std::lock_guard<std::mutex> mu(*mem_maps_lock_);
         try
         {
             auto result = new MemMap (/* name         */ name,
@@ -165,12 +168,21 @@ namespace art {
 
     void MemMap::Init()
     {
-        Genode::warning(__PRETTY_FUNCTION__, ": not implemented");
+        if (mem_maps_lock_ != nullptr)
+        {
+            return;
+        }
+        mem_maps_lock_ = new std::mutex();
     }
 
     void MemMap::Shutdown()
     {
-        Genode::warning(__PRETTY_FUNCTION__, ": not implemented");
+        if (mem_maps_lock_ == nullptr)
+        {
+            return;
+        }
+        delete mem_maps_lock_;
+        mem_maps_lock_ = nullptr;
     }
 
     void MemMap::DumpMaps(std::ostream& os, bool terse)
@@ -186,6 +198,7 @@ namespace art {
 
     bool MemMap::Protect(int prot)
     {
+        std::lock_guard<std::mutex> mu(*mem_maps_lock_);
         if (prot == prot_)
         {
             return true;
@@ -208,6 +221,7 @@ namespace art {
 
     void MemMap::SetSize(size_t new_size)
     {
+        std::lock_guard<std::mutex> mu(*mem_maps_lock_);
         size_t new_base_size = RoundUp(new_size + PointerDiff(begin_, base_begin_), kPageSize);
         if (new_base_size == base_size_)
         {
@@ -244,6 +258,7 @@ namespace art {
 
     void MemMap::MadviseDontNeedAndZero()
     {
+        std::lock_guard<std::mutex> mu(*mem_maps_lock_);
         if (base_begin_ == nullptr && base_size_ == 0)
         {
             return;
