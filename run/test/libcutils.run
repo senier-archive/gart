@@ -63,6 +63,7 @@ install_config {
             <dir name="socket">
                <lwip ip_addr="127.0.0.1" netmask="255.0.0.0" gateway="0.0.0.0" />
             </dir>
+			<dir name="tmp"> <ram/> </dir>
             <dir name="data"> <dir name="local"> <dir name="tmp"> <ram/> </dir> </dir> </dir>
             <dir name="dev">
                <log/>

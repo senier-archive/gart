@@ -44,6 +44,7 @@ install_config {
 		<resource name="RAM" quantum="8M"/>
 		<config ld_verbose="no" ld_bind_now="no">
 			<vfs>
+			    <dir name="tmp"> <ram/> </dir>
 				<dir name="dev">
                <log/>
                <inline name="rtc">2018-01-01 00:01</inline>

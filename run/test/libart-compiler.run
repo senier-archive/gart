@@ -45,6 +45,7 @@ install_config {
 		<resource name="RAM" quantum="700M"/>
 		<config ld_verbose="yes">
 			<vfs>
+				<dir name="tmp"> <ram/> </dir>
 				<dir name="data">
 					<dir name="dalvik-cache">
 						<ram/>

@@ -44,6 +44,7 @@ install_config {
 		<resource name="RAM" quantum="128M"/>
 		<config ld_verbose="no">
 			<vfs>
+				<dir name="tmp"> <ram/> </dir>
 				<dir name="data"> <dir name="local"> <dir name="tmp"> <ram/> </dir> </dir> </dir>
 				<dir name="dev">
                <log/>
