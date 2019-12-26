@@ -49,6 +49,7 @@ install_config {
                   <inline name="event-log-tags"># dummy</inline>
                </dir>
             </dir>
+				<dir name="tmp"> <ram/> </dir>
 				<dir name="data"> <dir name="local"> <dir name="tmp"> <ram/> </dir> </dir> </dir>
 				<dir name="dev">
                <log/>
