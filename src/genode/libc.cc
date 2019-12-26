@@ -4,6 +4,7 @@
 #include <errno.h>
 #include <sched.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #define NOT_IMPLEMENTED Genode::warning(__func__, ": not implemented")
 
@@ -11,6 +12,7 @@ class Raise : Genode::Exception { };
 
 extern "C" {
 
+pid_t gettid(void) { return getpid(); };
 int sigwait(const sigset_t *, int *) { NOT_IMPLEMENTED; return EINVAL; }
 int sched_getscheduler(pid_t) { NOT_IMPLEMENTED; errno = EINVAL; return -1; }
 int sched_getparam(pid_t, struct sched_param *) { NOT_IMPLEMENTED; return -1; }
