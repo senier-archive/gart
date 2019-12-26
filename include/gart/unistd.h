@@ -3,8 +3,15 @@
 
 #include_next <unistd.h>
 
-// Genode does not provide gettid. This is only used in liblog - replace with PID.
-static pid_t gettid(void) { return getpid(); };
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+pid_t gettid(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #include <string.h>
 #include <signal.h>
