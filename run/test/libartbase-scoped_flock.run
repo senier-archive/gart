@@ -4,8 +4,10 @@
 
 set build_components {
 	core init timer
+	lib/vfs/jitterentropy
+	lib/vfs/pipe
 	test/dummy_java_libs
-	test/libart-compiler
+	test/libartbase
 }
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
@@ -41,20 +43,23 @@ install_config {
 		<provides> <service name="Timer"/> </provides>
 	</start>
 
-	<start name="libart-compiler_test">
-		<resource name="RAM" quantum="700M"/>
+	<start name="libartbase_test">
+		<resource name="RAM" quantum="650M"/>
 		<config ld_verbose="yes">
 			<vfs>
-				<dir name="tmp"> <ram/> </dir>
+				<dir name="tmp">
+					<ram/>
+				</dir>
 				<dir name="data">
 					<dir name="dalvik-cache">
 						<ram/>
 					</dir>
 				</dir>
 				<dir name="dev">
+					<dir name="pipe"><pipe/></dir>
 					<log/>
 					<inline name="rtc">2018-01-01 00:01</inline>
-					<inline name="random">3d32200c56d42fac0ed8dada9d9b33e7</inline>
+					<jitterentropy name="random"/>
 				</dir>
 				<dir name="system">
 					<dir name="framework">
@@ -62,8 +67,9 @@ install_config {
 					</dir>
 				</dir>
 			</vfs>
-			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" />
-			<start name="/bin/libart-compiler_test">
+			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" rng="/dev/random" pipe="/dev/pipe" />
+			<start name="/bin/libartbase_test">
+				<arg value="--gtest_filter=ScopedFlockTest.TestLocking"/>
 				<env name="ANDROID_DATA" value="/data"/>
 				<env name="ANDROID_ROOT" value="/system"/>
 			</start>
@@ -81,6 +87,8 @@ exec tar --transform s/.jar/-testdex.jar/ -cf bin/framework.tar -C bin core-liba
 set boot_modules {
 	core init timer ld.lib.so
 	vfs.lib.so libc.lib.so libm.lib.so stdcxx.lib.so
+	vfs_jitterentropy.lib.so
+	vfs_pipe.lib.so
 	gtest.lib.so gart_liblog.lib.so
 	gart_libart.lib.so
 	gart_libbacktrace.lib.so
@@ -104,7 +112,7 @@ set boot_modules {
 	gart_libart-disassembler.lib.so
 	gart_libart-compiler.lib.so
 	gart_libicui18n.lib.so
-	libart-compiler_test
+	libartbase_test
 	framework.tar
 }
 
@@ -112,4 +120,4 @@ append_platform_drv_boot_modules
 build_boot_image $boot_modules
 
 append qemu_args " -m 512 -nographic "
-run_genode_until {.*child "libart-compiler_test" exited with exit value 0} 600
+run_genode_until {.*child "libartbase_test" exited with exit value } 600

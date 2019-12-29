@@ -44,7 +44,7 @@ install_config {
 	</start>
 
 	<start name="libartbase_test">
-		<resource name="RAM" quantum="500M"/>
+		<resource name="RAM" quantum="650M"/>
 		<config ld_verbose="yes">
 			<vfs>
 				<dir name="tmp">
@@ -61,14 +61,17 @@ install_config {
 					<inline name="rtc">2018-01-01 00:01</inline>
 					<jitterentropy name="random"/>
 				</dir>
-				<dir name="framework">
-					<tar name="framework.tar"/>
+				<dir name="system">
+					<dir name="framework">
+						<tar name="framework.tar"/>
+					</dir>
 				</dir>
 			</vfs>
 			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" rng="/dev/random" pipe="/dev/pipe" />
 			<start name="/bin/libartbase_test">
 				<arg value="--gtest_filter=-FdFileTest.EraseWithPathUnlinks"/>
 				<env name="ANDROID_DATA" value="/data"/>
+				<env name="ANDROID_ROOT" value="/system"/>
 			</start>
 		</config>
 	</start>
