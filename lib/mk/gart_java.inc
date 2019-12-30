@@ -76,7 +76,7 @@ $(foreach pair,$(PAIRS),$(eval $(pair)))
 
 $(JAR_NAME): $(JAVA_CLASSES)
 	$(MSG_MERGE)$(notdir $@)
-	$(file >$(FILELIST)) $(foreach O,$(patsubst $(LIB_CACHE_DIR)/$(LIB)/%,%,$^),$(file >>$(FILELIST),$O))
+	$(file >$(FILELIST)) $(foreach O,$(sort $(wildcard $(patsubst $(LIB_CACHE_DIR)/$(LIB)/%,%,$(^:.class=*.class)))),$(file >>$(FILELIST),$O))
 	$(VERBOSE)$(DX) $(DEX_OPTS) --dex --output=$@ --input-list=$(FILELIST)
 	$(VERBOSE)rm -f $(FILELIST)
 
