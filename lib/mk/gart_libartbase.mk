@@ -6,6 +6,9 @@ ANDROID_INCLUDES	 = libartbase
 ANDROID_SECTIONS	 = /art_cc_library[@name=libartbase]
 ANDROID_STATIC_LIB   = yes
 
+GENSRCS_SECTION=art_libartbase_operator_srcs
+GENSRCS_SUBDIR=libartbase
+
 # Fix visiblility
 ANDROID_EXCLUDE_OPT += -fvisibility=protected
 
