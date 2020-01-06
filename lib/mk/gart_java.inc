@@ -7,9 +7,14 @@ GART_JDK9_PATH = $(call select_from_ports,gart_jdk9)/jdk9/linux-x86/bin
 # `dx` requires `java` to be in PATH
 export PATH := $(GART_JDK9_PATH):$(PATH)
 
+MSG_JAVAC   ?= @$(ECHO) "    JAVAC   "
+MSG_DESUGAR ?= @$(ECHO) "  DESUGAR   "
+MSG_DEX     ?= @$(ECHO) "      DEX   "
+
 JAVAC ?= $(GART_JDK9_PATH)/javac
 JAR ?= $(GART_JDK9_PATH)/jar
 DX ?= $(call select_from_ports,gart_build-tools)/build-tools/common/bin/dx
+DESUGAR ?= $(call select_from_ports,gart_build-tools)/build-tools/common/framework/desugar.jar
 
 JAVA_OPTS += \
 	-source 1.8 \
@@ -22,64 +27,58 @@ JAVA_OPTS += \
 	-XDskipDuplicateBridges=true \
 	-XDstringConcat=inline \
 	-bootclasspath "" \
-	-Xpkginfo:always
+	-Xpkginfo:always \
+	-implicit:none
 
 E :=
 SPACE := $E $E
 
-# Add directories pointing to java.jang to classpath
-LIBCORE_BASEDIR = $(call select_from_ports,gart_libcore)/libcore
-LIBCORE_SUBDIRS += ojluni/src/main/java
-LIBCORE_SUBDIRS += ojluni/src/lambda/java
-LIBCORE_SUBDIRS += ojluni/src/main/resources
-LIBCORE_SUBDIRS += luni/src/main/java
-LIBCORE_SUBDIRS += libart/src/main/java
-LIBCORE_SUBDIRS += dalvik/src/main/java
-LIBCORE_SUBDIRS += xml/src/main/java
-LIBCORE_SUBDIRS += json/src/main/java
-JAVA_SOURCEPATH += $(addprefix $(LIBCORE_BASEDIR)/,$(LIBCORE_SUBDIRS))
-
-JAVA_SOURCEPATH +=  $(addprefix $(JAVA_BASE_DIR)/,$(JAVA_SOURCE_DIRS))
-
-# icu4j is always required
-JAVA_SOURCEPATH += $(call select_from_ports,gart_icu)/icu/android_icu4j/src/main/java
-
-CP = $(subst $(SPACE),:,$(strip $(JAVA_CLASSPATH)))
-SP = $(subst $(SPACE),:,$(strip $(JAVA_SOURCEPATH)))
-
-JAR_NAME = $(BUILD_BASE_DIR)/bin/$(JAVA_JAR_NAME).jar
+JAR_BASE_NAME = $(BUILD_BASE_DIR)/bin/$(JAVA_JAR_NAME)
 FILELIST = $(LIB_CACHE_DIR)/$(LIB)/files.lst
+SRCLIST = $(LIB_CACHE_DIR)/$(LIB)/sources.lst
 
-DEX_OPTS += --min-sdk-version=26
+MIN_SDK_VERSION = 26
+
+DEX_OPTS += --min-sdk-version=$(MIN_SDK_VERSION)
+
+DESUGAR_OPTS += --min_sdk_version=$(MIN_SDK_VERSION)
+DESUGAR_OPTS += --desugar_try_with_resources_if_needed=false
+DESUGAR_OPTS += --allow_empty_bootclasspath
+
+JAVA_BASE_DIRS += $(JAVA_BASE_DIR)
+
+findsrc = $(foreach d,$(sort $2),$(wildcard $d/$1))
+JAVA_SOURCES = $(foreach F,$(SRC_JAVA),$(call findsrc,$F,$(sort $(JAVA_BASE_DIRS))))
+
+LIBCORE_INCLUDE_DIRS += ojluni/src/main/java
+LIBCORE_INCLUDE_DIRS += ojluni/src/lambda/java
+LIBCORE_INCLUDE_DIRS += ojluni/src/main/resources
+LIBCORE_INCLUDE_DIRS += luni/src/main/java
+LIBCORE_INCLUDE_DIRS += libart/src/main/java
+LIBCORE_INCLUDE_DIRS += dalvik/src/main/java
+LIBCORE_INCLUDE_DIRS += xml/src/main/java
+LIBCORE_INCLUDE_DIRS += json/src/main/java
+
+JAVA_INCLUDE_DIRS  =
+JAVA_INCLUDE_DIRS += $(call select_from_ports,gart_icu)/icu/android_icu4j/src/main/java
+JAVA_INCLUDE_DIRS += $(addprefix $(call select_from_ports,gart_libcore)/libcore/,$(LIBCORE_INCLUDE_DIRS))
+JAVA_CLASS_PATHS   = $(subst $(SPACE),:,$(strip $(JAVA_INCLUDE_DIRS)))
 
 ifneq ($(called_from_lib_mk),)
 # FIXME: Can we depend on the .a file?
-all: $(JAR_NAME)
+all: $(JAR_BASE_NAME).jar
 endif
 
-VPATH += $(JAVA_SOURCEPATH)
-
-extract = $(filter-out $1,$(foreach d,$2,$(patsubst $d/%,%,$1)))
-
-SRC_JAVA_SORTED = $(sort $(SRC_JAVA))
-JAVA_CLASSES = $(call extract,$(SRC_JAVA_SORTED:.java=.class),$(JAVA_SOURCE_DIRS))
-
-ifneq ($(words $(sort $(JAVA_CLASSES))),$(words $(JAVA_CLASSES)))
-$(error JAVA_CLASSES has duplicates!)
-endif
-
-# Force ordering of java classes to serialize javac invocations
-RIGHT = $(filter-out $(firstword $(JAVA_CLASSES)), $(JAVA_CLASSES))
-LEFT  = $(filter-out $(lastword $(JAVA_CLASSES)), $(JAVA_CLASSES))
-PAIRS = $(join $(LEFT),$(addprefix :,$(RIGHT)))
-$(foreach pair,$(PAIRS),$(eval $(pair)))
-
-$(JAR_NAME): $(JAVA_CLASSES)
-	$(MSG_MERGE)$(notdir $@)
-	$(file >$(FILELIST)) $(foreach O,$(sort $(wildcard $(patsubst $(LIB_CACHE_DIR)/$(LIB)/%,%,$(^:.class=*.class)))),$(file >>$(FILELIST),$O))
+$(JAR_BASE_NAME).sugared.jar:
+	$(MSG_JAVAC)$(notdir $@)
+	$(VERBOSE)$(file >$(SRCLIST)) $(foreach O, $(JAVA_SOURCES),$(file >>$(SRCLIST),$O))
+	$(VERBOSE)set -o pipefail; $(JAVAC) $(JAVA_OPTS) -d $(LIB_CACHE_DIR)/$(LIB) -classpath $(JAVA_CLASS_PATHS) @$(SRCLIST) |& sed '/^Note:/d'
+	$(MSG_DEX)$(notdir $@)
+	$(VERBOSE)find $(LIB_CACHE_DIR)/$(LIB) -type f -name *.class -printf '%P\n' > $(FILELIST)
 	$(VERBOSE)$(DX) $(DEX_OPTS) --dex --output=$@ --input-list=$(FILELIST)
-	$(VERBOSE)rm -f $(FILELIST)
+	$(VERBOSE)rm -f $(FILELIST) $(SRCLIST)
 
-%.class: %.java
-	$(MSG_COMP)$*.java
-	$(VERBOSE)set -o pipefail; $(JAVAC) $(JAVA_OPTS) -d $(LIB_CACHE_DIR)/$(LIB) -classpath "$(CP)" -sourcepath "$(SP)" $< |& sed '/^Note:/d'
+%.jar: %.sugared.jar
+	$(MSG_DESUGAR) $(notdir $@)
+	$(VERBOSE)(java -jar $(DESUGAR) $(DESUGAR_OPTS) --input $< --output $@.tmp)
+	@mv $@.tmp $@
