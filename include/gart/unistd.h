@@ -3,16 +3,6 @@
 
 #include_next <unistd.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-pid_t gettid(void);
-
-#ifdef __cplusplus
-}
-#endif
-
 #include <string.h>
 #include <signal.h>
 #include <sys/param.h>
