@@ -112,7 +112,7 @@ namespace art {
 
     MemMap::~MemMap()
     {
-        Genode::warning(__PRETTY_FUNCTION__, ": not implemented");
+        address_space_.detach(base_begin_);
     }
 
     MemMap* MemMap::MapAnonymous(const char* name,
@@ -151,7 +151,6 @@ namespace art {
             return nullptr;
         } catch (...)
         {
-            Genode::error(__func__, ": Unknown error");
             return nullptr;
         }
     }
