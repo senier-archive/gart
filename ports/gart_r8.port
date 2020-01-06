@@ -1,0 +1,8 @@
+LICENSE   := Apache_2.0
+VERSION   := git
+DOWNLOADS := gart_r8.git
+
+URL(gart_r8) := https://android.googlesource.com/platform/prebuilts/r8
+DIR(gart_r8) := r8
+REV(gart_r8) := android-9.0.0_r45
+DEPTH(gart_r8) := 1
