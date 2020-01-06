@@ -7,14 +7,12 @@ GART_JDK9_PATH = $(call select_from_ports,gart_jdk9)/jdk9/linux-x86/bin
 # `dx` requires `java` to be in PATH
 export PATH := $(GART_JDK9_PATH):$(PATH)
 
-MSG_JAVAC   ?= @$(ECHO) "    JAVAC   "
-MSG_DESUGAR ?= @$(ECHO) "  DESUGAR   "
-MSG_DEX     ?= @$(ECHO) "      DEX   "
+MSG_JAVAC ?= @$(ECHO) "    JAVAC   "
+MSG_D8    ?= @$(ECHO) "       D8   "
 
 JAVAC ?= $(GART_JDK9_PATH)/javac
 JAR ?= $(GART_JDK9_PATH)/jar
-DX ?= $(call select_from_ports,gart_build-tools)/build-tools/common/bin/dx
-DESUGAR ?= $(call select_from_ports,gart_build-tools)/build-tools/common/framework/desugar.jar
+D8 ?= $(call select_from_ports,gart_r8)/r8/buildtools/d8-master.jar
 
 JAVA_OPTS += \
 	-source 1.8 \
@@ -39,7 +37,7 @@ SRCLIST = $(LIB_CACHE_DIR)/$(LIB)/sources.lst
 
 MIN_SDK_VERSION = 26
 
-DEX_OPTS += --min-sdk-version=$(MIN_SDK_VERSION)
+D8_OPTS += --min-api $(MIN_SDK_VERSION)
 
 DESUGAR_OPTS += --min_sdk_version=$(MIN_SDK_VERSION)
 DESUGAR_OPTS += --desugar_try_with_resources_if_needed=false
@@ -69,16 +67,11 @@ ifneq ($(called_from_lib_mk),)
 all: $(JAR_BASE_NAME).jar
 endif
 
-$(JAR_BASE_NAME).sugared.jar:
+$(JAR_BASE_NAME).jar:
 	$(MSG_JAVAC)$(notdir $@)
 	$(VERBOSE)$(file >$(SRCLIST)) $(foreach O, $(JAVA_SOURCES),$(file >>$(SRCLIST),$O))
 	$(VERBOSE)set -o pipefail; $(JAVAC) $(JAVA_OPTS) -d $(LIB_CACHE_DIR)/$(LIB) -classpath $(JAVA_CLASS_PATHS) @$(SRCLIST) |& sed '/^Note:/d'
-	$(MSG_DEX)$(notdir $@)
+	$(MSG_D8)$(notdir $@)
 	$(VERBOSE)find $(LIB_CACHE_DIR)/$(LIB) -type f -name *.class -printf '%P\n' > $(FILELIST)
-	$(VERBOSE)$(DX) $(DEX_OPTS) --dex --output=$@ --input-list=$(FILELIST)
+	$(VERBOSE)java -jar $(D8) $(D8_OPTS) --output $@ $$(cat $(FILELIST))
 	$(VERBOSE)rm -f $(FILELIST) $(SRCLIST)
-
-%.jar: %.sugared.jar
-	$(MSG_DESUGAR) $(notdir $@)
-	$(VERBOSE)(java -jar $(DESUGAR) $(DESUGAR_OPTS) --input $< --output $@.tmp)
-	@mv $@.tmp $@
