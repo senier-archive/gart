@@ -5,3 +5,4 @@ DOWNLOADS := gart_libcore.git
 URL(gart_libcore) := https://android.googlesource.com/platform/libcore
 DIR(gart_libcore) := libcore
 REV(gart_libcore) := android-9.0.0_r45
+DEPTH(gart_libcore) := 1

@@ -5,3 +5,4 @@ DOWNLOADS := gart_lzma.git
 URL(gart_lzma) := https://android.googlesource.com/platform/external/lzma
 DIR(gart_lzma) := lzma
 REV(gart_lzma) := android-9.0.0_r45
+DEPTH(gart_lzma) := 1

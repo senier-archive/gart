@@ -5,3 +5,4 @@ DOWNLOADS := gart_icu.git
 URL(gart_icu) := https://android.googlesource.com/platform/external/icu
 DIR(gart_icu) := icu
 REV(gart_icu) := android-9.0.0_r45
+DEPTH(gart_icu) := 1

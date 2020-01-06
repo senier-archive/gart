@@ -5,3 +5,4 @@ DOWNLOADS := gart_build-tools.git
 URL(gart_build-tools) := https://android.googlesource.com/platform/prebuilts/build-tools
 DIR(gart_build-tools) := build-tools
 REV(gart_build-tools) := android-9.0.0_r45
+DEPTH(gart_build-tools) := 1

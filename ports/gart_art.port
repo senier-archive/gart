@@ -5,3 +5,4 @@ DOWNLOADS := gart_art.git
 URL(gart_art) := https://github.com/Componolit/android_platform_art.git
 DIR(gart_art) := art
 REV(gart_art) := android-9.0.0_r45
+DEPTH(gart_art) := 1

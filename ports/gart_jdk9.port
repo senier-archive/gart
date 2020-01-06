@@ -5,3 +5,4 @@ DOWNLOADS := gart_jdk9.git
 URL(gart_jdk9) := https://android.googlesource.com/platform/prebuilts/jdk/jdk9/
 DIR(gart_jdk9) := jdk9
 REV(gart_jdk9) := android-9.0.0_r45
+DEPTH(gart_jdk9) := 1

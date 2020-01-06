@@ -5,3 +5,4 @@ DOWNLOADS := gart_libz.git
 URL(gart_libz) := https://android.googlesource.com/platform/external/zlib
 DIR(gart_libz) := zlib
 REV(gart_libz) := android-9.0.0_r45
+DEPTH(gart_libz) := 1

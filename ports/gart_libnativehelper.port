@@ -5,3 +5,4 @@ DOWNLOADS := gart_libnativehelper.git
 URL(gart_libnativehelper) := https://github.com/Componolit/android_platform_nativehelper
 DIR(gart_libnativehelper) := libnativehelper
 REV(gart_libnativehelper) := android-9.0.0_r45
+DEPTH(gart_libnativehelper) := 1

@@ -5,3 +5,4 @@ DOWNLOADS := gart_core.git
 URL(gart_core) := https://github.com/Componolit/android_platform_system_core.git
 DIR(gart_core) := system/core
 REV(gart_core) := android-9.0.0_r45
+DEPTH(gart_core) := 1
