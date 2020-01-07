@@ -48,7 +48,6 @@ env:
 
         - LINUX_X86_64_LINUX="x86_64 linux linux"
         - NOVA_X86_64_PC="x86_64 nova pc"
-        - SEL4_X86_32_PC="x86_32 sel4 pc"
         - FOC_ARM_V8A_RPI3="arm_v8a foc rpi3"
         - FOC_ARM_V7A_PBXA9="arm_v7a foc pbxa9"
 
@@ -113,16 +112,6 @@ matrix:
           env: TESTS=TESTS_GART
                PLATFORM=FOC_ARM_V7A_PBXA9
                OPTS=OPTS_QEMU
-
-        - name: "sel4-x86_32-pc: base tests"
-          env: TESTS=TESTS_BASE
-               PLATFORM=SEL4_X86_32_PC
-               OPTS=OPTS_QEMU_ISO
-
-        - name: "sel4-x86_32-pc: GART tests"
-          env: TESTS=TESTS_GART
-               PLATFORM=SEL4_X86_32_PC
-               OPTS=OPTS_QEMU_ISO
 
         - name: "linux-x86_64-linux: Java library tests"
           env: TESTS=TESTS_JAVA
