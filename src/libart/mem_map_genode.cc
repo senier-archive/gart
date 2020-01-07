@@ -113,6 +113,7 @@ namespace art {
     MemMap::~MemMap()
     {
         address_space_.detach(base_begin_);
+        env_.ram().free(ram_ds_cap_);
     }
 
     MemMap* MemMap::MapAnonymous(const char* name,
