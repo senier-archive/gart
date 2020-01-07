@@ -43,7 +43,7 @@ env:
             run/test/vixl
           "
         - TESTS_LIBLZ4="run/test/liblz4"
-        - TESTS_GART="test/libart-compiler"
+        - TESTS_GART="run/test/libartbase test/libart-compiler"
         - TESTS_JAVA="test/dummy_java_libs"
 
         - LINUX_X86_64_LINUX="x86_64 linux linux"
