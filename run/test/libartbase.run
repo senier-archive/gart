@@ -44,7 +44,7 @@ install_config {
 	</start>
 
 	<start name="libartbase_test">
-		<resource name="RAM" quantum="650M"/>
+		<resource name="RAM" quantum="200M"/>
 		<config ld_verbose="yes">
 			<vfs>
 				<dir name="tmp">
