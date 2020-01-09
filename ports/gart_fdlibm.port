@@ -1,0 +1,8 @@
+LICENSE   := BSD
+VERSION   := git
+DOWNLOADS := fdlibm.git
+
+URL(fdlibm) := https://android.googlesource.com/platform/external/fdlibm
+DIR(fdlibm) := fdlibm
+REV(fdlibm) := android-9.0.0_r45
+DEPTH(fdlibm) := 1
