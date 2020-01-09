@@ -49,18 +49,17 @@ install_config {
             <dir name="dev">
                <log/>
                <inline name="rtc">2018-01-01 00:01</inline>
-               <jitterentropy name="random"/>
+               <jitterentropy name="urandom"/>
             </dir>
          </vfs>
-         <libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" rng="/dev/random" />
+         <libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" rng="/dev/urandom" />
          <start name="/bin/libcrypto_test">
-             <arg value="--gtest_filter=-X509Test.RSASign:X509Test.Ed25519Sign:ThreadTest.RandState:RSATest.TestDecrypt:RSATest.CheckFIPS:RSATest.GenerateFIPS:RSATest.BadKey:RSATest.OnlyDGiven:RSATest.RoundKeyLengths:PKCS8Test.RoundTripPBEWithrSHA1And3KeyTripleDES:PKCS8Test.RoundTripPBEWithSHA1And3KeyTripleDESEmptyPassword:PKCS8Test.RoundTripPBEWithSHA1And40BitRC2CBC:PKCS8Test.RoundTripPBEWithSHA1And128BitRC4:PKCS8Test.RoundTripPBES2:ECDSATest.BuiltinCurves:ECTest.ArbitraryCurve:BNTest.BN2BinPadded:BNTest.LittleEndian:BNTest.Rand:BNTest.RandRange:BNTest.ExpModZero:BNTest.SmallPrime:BNTest.Pow2:BNTest.PrimeChecking:BNTest.NumBitsWord:EVPTest.TestVectors:EVPExtraTest.DigestSignInit:EVPExtraTest.VerifyRecover:ECDHTest.GroupMismatch:DSATest.AllTests:DHTest.AllTests:SPAKE25519Test.SPAKE2:SPAKE25519Test.OldAlice:SPAKE25519Test.OldBob:SPAKE25519Test.WrongPassword:SPAKE25519Test.WrongNames:SPAKE25519Test.CorruptMessages:Ed25519Test.KeypairFromSeed:RSAEncryptTest.TestKey/0:RSAEncryptTest.TestKey/1:RSAEncryptTest.TestKey/2:ECCurveTest.SetAffine/secp521r1:ECCurveTest.*:ThreadTest.ThreadLocal:BIOTest.SocketConnect"/>
+             <arg value="--gtest_filter=-ThreadTest.ThreadLocal:BIOTest.SocketConnect"/>
          </start>
       </config>
    </start>
 </config>}
 
-#             <arg value="--gtest_filter=-X509Test.RSASign:X509Test.Ed25519Sign:ThreadTest.RandState:RSATest.TestDecrypt:RSATest.CheckFIPS:RSATest.GenerateFIPS:RSATest.BadKey:RSATest.OnlyDGiven:RSATest.RoundKeyLengths:PKCS8Test.RoundTripPBEWithrSHA1And3KeyTripleDES:PKCS8Test.RoundTripPBEWithSHA1And3KeyTripleDESEmptyPassword:PKCS8Test.RoundTripPBEWithSHA1And40BitRC2CBC:PKCS8Test.RoundTripPBEWithSHA1And128BitRC4:PKCS8Test.RoundTripPBES2:ECDSATest.BuiltinCurves:ECTest.ArbitraryCurve:BNTest.BN2BinPadded:BNTest.LittleEndian:BNTest.Rand:BNTest.RandRange:BNTest.ExpModZero:BNTest.SmallPrime:BNTest.Pow2:BNTest.PrimeChecking:BNTest.NumBitsWord:EVPTest.TestVectors:EVPExtraTest.DigestSignInit:EVPExtraTest.VerifyRecover:ECDHTest.GroupMismatch:DSATest.AllTests:DHTest.AllTests:SPAKE25519Test.SPAKE2:SPAKE25519Test.OldAlice:SPAKE25519Test.OldBob:SPAKE25519Test.WrongPassword:SPAKE25519Test.WrongNames:SPAKE25519Test.CorruptMessages:Ed25519Test.KeypairFromSeed:RSAEncryptTest.TestKey/0:RSAEncryptTest.TestKey/1:RSAEncryptTest.TestKey/2:ECCurveTest.SetAffine/secp521r1:ECCurveTest.*:ThreadTest.ThreadLocal:BIOTest.SocketConnect"/>
 #
 # Boot image
 #
