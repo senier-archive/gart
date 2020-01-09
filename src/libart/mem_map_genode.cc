@@ -70,7 +70,7 @@ namespace art {
 
         if (!(prot_ & PROT_READ))
         {
-            Genode::warning("Non-accessible mapping unsupported, adding read permission");
+            // Genode::warning("Non-accessible mapping unsupported, adding read permission");
             prot_ |= PROT_READ;
         }
 
@@ -93,7 +93,7 @@ namespace art {
             if (!done)
             {
                 Genode::error("Error mapping low-mem");
-                throw 1;
+                throw Error("Error mapping low-mem");
             }
             size_t new_base = lowmem_base.load() + base_size_;
             lowmem_base.store(new_base);
@@ -147,11 +147,11 @@ namespace art {
             return result;
         } catch (Error e)
         {
-            Genode::error("Error: ", error_msg->c_str());
             e.message(error_msg);
             return nullptr;
         } catch (...)
         {
+            *error_msg = "Unknown exception when mapping memory";
             return nullptr;
         }
     }
@@ -257,8 +257,46 @@ namespace art {
                                      const char* filename,
                                      std::string* error_msg)
     {
-        Genode::warning(__PRETTY_FUNCTION__, ": not implemented");
-        return nullptr;
+        MemMap *result;
+        result = MapAnonymous (/* name       */ filename,
+                               /* addr       */ addr,
+                               /* size       */ byte_count,
+                               /* prot       */ prot | PROT_WRITE | (low_4gb ? PROT_LOWMEM : 0),
+                               /* low_4gb    */ low_4gb,
+                               /* reuse      */ reuse,
+                               /* error_msg  */ error_msg,
+                               /* use_ashmem */ false);
+        if (result == nullptr)
+        {
+            return nullptr;
+        }
+
+        DCHECK(result->Size() >= byte_count);
+
+        off_t old_offset = lseek(fd, 0, SEEK_SET);
+        size_t offset = 0;
+
+        while (offset < byte_count)
+        {
+            ssize_t bytes = read(fd, result->Begin() + offset, byte_count - offset);
+            if (bytes < 0)
+            {
+                delete result;
+                *error_msg = strerror(errno);
+                return nullptr;
+            }
+
+            if (bytes == 0)
+            {
+                break;
+            }
+            DCHECK(offset <= byte_count - bytes);
+            offset += bytes;
+        }
+
+        lseek(fd, old_offset, SEEK_SET);
+        result->Protect(prot);
+        return result;
     }
 
     void MemMap::MadviseDontNeedAndZero()
