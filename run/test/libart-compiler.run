@@ -4,12 +4,17 @@
 
 set build_components {
 	core init timer
+	lib/vfs/jitterentropy
+	lib/vfs/pipe
 	test/dummy_java_libs
 	test/libart-compiler
 	test/gart_gtest/AbstractMethod
+	test/gart_gtest/DexToDexDecompiler
 	test/gart_gtest/ExceptionHandle
 	test/gart_gtest/Interfaces
 	test/gart_gtest/MyClassNatives
+	test/gart_gtest/ProfileTestMultiDex
+	test/gart_gtest/StaticLeafMethods
 }
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
@@ -47,7 +52,7 @@ install_config {
 
 	<start name="libart-compiler_test">
 		<resource name="RAM" quantum="700M"/>
-		<config ld_verbose="yes">
+		<config ld_verbose="no">
 			<vfs>
 				<dir name="tmp"> <ram/> </dir>
 				<dir name="data">
@@ -56,9 +61,10 @@ install_config {
 					</dir>
 				</dir>
 				<dir name="dev">
+					<dir name="pipe"><pipe/></dir>
 					<log/>
 					<inline name="rtc">2018-01-01 00:01</inline>
-					<inline name="random">3d32200c56d42fac0ed8dada9d9b33e7</inline>
+					<jitterentropy name="random"/>
 				</dir>
 				<dir name="system">
 					<dir name="framework">
@@ -73,8 +79,9 @@ install_config {
 					<tar name="testdata.tar"/>
 				</dir>
 			</vfs>
-			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" />
+			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" pipe="/dev/pipe" rng="/dev/random" />
 			<start name="/bin/libart-compiler_test">
+				<arg value="--gtest_filter=ExceptionTest.StackTraceElement"/>
 				<env name="ANDROID_DATA" value="/data"/>
 				<env name="ANDROID_ROOT" value="/system"/>
 			</start>
@@ -82,24 +89,8 @@ install_config {
 	</start>
 </config>}
 
-# <arg value="--gtest_filter="/>
-
 # FIXME: Failing tests
-#
-# DwarfTest.DebugInfo
-# DwarfTest.DebugLineSpecialOpcodes
-# DwarfTest.DebugLine
-# DwarfTest.x86_64_RegisterMapping
-# DwarfTest.DebugFrame64
-# DwarfTest.DebugFrame
-# DexToDexDecompilerTest.DexToDexDecompiler
-# DexToDexDecompilerTest.VerifierDeps
-# CompilerDriverVerifyTest.RetryVerifcationStatusCheckVerified:
-# CompilerDriverVerifyTest.VerifyCompilation
-# CompilerDriverProfileTest.ProfileGuidedCompilation
-# CompilerDriverMethodsTest.Selection
-# CompilerDriverTest.AbstractMethodErrorStub
-# ExceptionTest.StackTraceElement
+# 
 # VerifierDepsTest.EncodeDecode
 # VerifierDepsTest.EncodeDecodeMulti
 # VerifierDepsTest.UnverifiedClasses
@@ -335,6 +326,29 @@ install_config {
 # JniCompilerTest.CriticalNativeNormalCompiler
 # JniCompilerTest.CriticalNativeNormalGeneric
 
+# BUGS
+#
+# mutex-inl.h:217] Check failed: self->GetHeldMutex(level_) == this (self->GetHeldMutex(level_)=0, this=0x7f2792940af8)
+# - DexToDexDecompilerTest.DexToDexDecompiler
+#
+# mutex-inl.h:243] Check failed: self->GetHeldMutex(level_) == this (self->GetHeldMutex(level_)=0, this=0x7f29ea82e6d0)
+# - CompilerDriverProfileTest.ProfileGuidedCompilation
+# - CompilerDriverMethodsTest.Selection
+# - CompilerDriverTest.AbstractMethodErrorStub
+#
+# Validation failed
+# - DexToDexDecompilerTest.VerifierDeps
+
+### Unsupported
+#
+# Just for debugging
+#
+# DwarfTest.DebugLineSpecialOpcodes
+# DwarfTest.DebugLine
+# DwarfTest.x86_64_RegisterMapping
+# DwarfTest.DebugFrame64
+# DwarfTest.DebugFrame
+
 #
 # Boot image
 #
@@ -344,15 +358,20 @@ exec tar --transform s/.jar/-testdex.jar/ -cf bin/framework.tar -C bin core-liba
 exec cp [genode_dir]/repos/gart/test/data/art-gtest-VerifierDeps.jar bin/
 exec tar -cf bin/testdata.tar -C bin \
 	art-gtest-AbstractMethod.jar \
+	art-gtest-DexToDexDecompiler.jar \
 	art-gtest-ExceptionHandle.jar \
 	art-gtest-Interfaces.jar \
 	art-gtest-MyClassNatives.jar \
+	art-gtest-ProfileTestMultiDex.jar \
+	art-gtest-StaticLeafMethods.jar \
 	art-gtest-VerifierDeps.jar
 
 # generic modules
 set boot_modules {
 	core init timer ld.lib.so
 	vfs.lib.so libc.lib.so libm.lib.so stdcxx.lib.so
+	vfs_jitterentropy.lib.so
+	vfs_pipe.lib.so
 	gtest.lib.so gart_liblog.lib.so
 	gart_libart.lib.so
 	gart_libbacktrace.lib.so
