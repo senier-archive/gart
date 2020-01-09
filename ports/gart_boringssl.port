@@ -1,0 +1,8 @@
+LICENSE   := OpenSSL
+VERSION   := git
+DOWNLOADS := boringssl.git
+
+URL(boringssl) := https://android.googlesource.com/platform/external/boringssl
+DIR(boringssl) := boringssl
+REV(boringssl) := android-9.0.0_r45
+DEPTH(boringssl) := 1

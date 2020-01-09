@@ -1,0 +1,81 @@
+#
+# Build
+#
+
+set build_components {
+   core init timer
+   lib/vfs/jitterentropy
+   test/libcrypto
+}
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
+build $build_components
+create_boot_directory
+
+#
+# Generate config
+#
+
+install_config {
+<config verbose="yes">
+   <parent-provides>
+      <service name="ROM"/>
+      <service name="CAP"/>
+      <service name="RM"/>
+      <service name="PD"/>
+      <service name="CPU"/>
+      <service name="LOG"/>
+      <service name="SIGNAL"/>
+      <service name="IO_PORT"/>
+      <service name="IRQ"/>
+      <service name="IO_MEM"/>
+   </parent-provides>
+   <default-route>
+      <any-service> <parent/> <any-child/> </any-service>
+   </default-route>
+   <default caps="1000"/>
+
+   <start name="timer">
+      <resource name="RAM" quantum="1M"/>
+      <provides> <service name="Timer"/> </provides>
+   </start>
+
+   <start name="libcrypto_test">
+      <resource name="RAM" quantum="64M"/>
+      <config ld_verbose="no" ld_bind_now="no">
+         <vfs>
+			<dir name="tmp"> <ram/> </dir>
+            <dir name="dev">
+               <log/>
+               <inline name="rtc">2018-01-01 00:01</inline>
+               <jitterentropy name="random"/>
+            </dir>
+         </vfs>
+         <libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" rng="/dev/random" />
+         <start name="/bin/libcrypto_test">
+             <arg value="--gtest_filter=-X509Test.RSASign:X509Test.Ed25519Sign:ThreadTest.RandState:RSATest.TestDecrypt:RSATest.CheckFIPS:RSATest.GenerateFIPS:RSATest.BadKey:RSATest.OnlyDGiven:RSATest.RoundKeyLengths:PKCS8Test.RoundTripPBEWithrSHA1And3KeyTripleDES:PKCS8Test.RoundTripPBEWithSHA1And3KeyTripleDESEmptyPassword:PKCS8Test.RoundTripPBEWithSHA1And40BitRC2CBC:PKCS8Test.RoundTripPBEWithSHA1And128BitRC4:PKCS8Test.RoundTripPBES2:ECDSATest.BuiltinCurves:ECTest.ArbitraryCurve:BNTest.BN2BinPadded:BNTest.LittleEndian:BNTest.Rand:BNTest.RandRange:BNTest.ExpModZero:BNTest.SmallPrime:BNTest.Pow2:BNTest.PrimeChecking:BNTest.NumBitsWord:EVPTest.TestVectors:EVPExtraTest.DigestSignInit:EVPExtraTest.VerifyRecover:ECDHTest.GroupMismatch:DSATest.AllTests:DHTest.AllTests:SPAKE25519Test.SPAKE2:SPAKE25519Test.OldAlice:SPAKE25519Test.OldBob:SPAKE25519Test.WrongPassword:SPAKE25519Test.WrongNames:SPAKE25519Test.CorruptMessages:Ed25519Test.KeypairFromSeed:RSAEncryptTest.TestKey/0:RSAEncryptTest.TestKey/1:RSAEncryptTest.TestKey/2:ECCurveTest.SetAffine/secp521r1:ECCurveTest.*:ThreadTest.ThreadLocal:BIOTest.SocketConnect"/>
+         </start>
+      </config>
+   </start>
+</config>}
+
+#             <arg value="--gtest_filter=-X509Test.RSASign:X509Test.Ed25519Sign:ThreadTest.RandState:RSATest.TestDecrypt:RSATest.CheckFIPS:RSATest.GenerateFIPS:RSATest.BadKey:RSATest.OnlyDGiven:RSATest.RoundKeyLengths:PKCS8Test.RoundTripPBEWithrSHA1And3KeyTripleDES:PKCS8Test.RoundTripPBEWithSHA1And3KeyTripleDESEmptyPassword:PKCS8Test.RoundTripPBEWithSHA1And40BitRC2CBC:PKCS8Test.RoundTripPBEWithSHA1And128BitRC4:PKCS8Test.RoundTripPBES2:ECDSATest.BuiltinCurves:ECTest.ArbitraryCurve:BNTest.BN2BinPadded:BNTest.LittleEndian:BNTest.Rand:BNTest.RandRange:BNTest.ExpModZero:BNTest.SmallPrime:BNTest.Pow2:BNTest.PrimeChecking:BNTest.NumBitsWord:EVPTest.TestVectors:EVPExtraTest.DigestSignInit:EVPExtraTest.VerifyRecover:ECDHTest.GroupMismatch:DSATest.AllTests:DHTest.AllTests:SPAKE25519Test.SPAKE2:SPAKE25519Test.OldAlice:SPAKE25519Test.OldBob:SPAKE25519Test.WrongPassword:SPAKE25519Test.WrongNames:SPAKE25519Test.CorruptMessages:Ed25519Test.KeypairFromSeed:RSAEncryptTest.TestKey/0:RSAEncryptTest.TestKey/1:RSAEncryptTest.TestKey/2:ECCurveTest.SetAffine/secp521r1:ECCurveTest.*:ThreadTest.ThreadLocal:BIOTest.SocketConnect"/>
+#
+# Boot image
+#
+
+# generic modules
+set boot_modules {
+   core init timer ld.lib.so
+   vfs.lib.so libc.lib.so libm.lib.so stdcxx.lib.so gtest.lib.so
+   vfs_jitterentropy.lib.so
+   gart_libcrypto.lib.so
+   libcrypto_test
+}
+
+append_platform_drv_boot_modules
+build_boot_image $boot_modules
+
+append qemu_args " -m 512 -nographic "
+run_genode_until {.*child "libcrypto_test" exited with exit value 0} 120

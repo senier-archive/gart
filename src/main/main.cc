@@ -33,7 +33,7 @@ void Libc::Component::construct(Libc::Env &env)
 
 	Libc::with_libc([&] {
 
-       typedef Genode::String<512> Value;
+       typedef Genode::String<2048> Value;
        int rv, argc = 0;
        const char *argv[MAX_ARGS];
 
