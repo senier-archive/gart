@@ -33,6 +33,8 @@ LIBS += gtest gart_gtest_main
 ANDROID_EXCLUDE_OPT += -Wno-frame-larger-than=
 CC_OPT += -Wno-tautological-compare
 
+ANDROID_EXCLUDE_OPT += -DVIXL_DEBUG
+
 # dlmalloc required
 ANDROID_LIBS += dlmalloc
 

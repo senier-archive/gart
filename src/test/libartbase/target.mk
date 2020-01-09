@@ -25,5 +25,6 @@ ANDROID_LIBS += libvixl-arm64
 LIBS += gtest gart_gtest_main
 
 ANDROID_EXCLUDE_OPT += -Wno-frame-larger-than=
+ANDROID_EXCLUDE_OPT += -DVIXL_DEBUG
 
 include $(call select_from_repositories,lib/mk/android-prg.inc)
