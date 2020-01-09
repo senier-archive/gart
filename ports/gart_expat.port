@@ -1,0 +1,8 @@
+LICENSE   := MIT
+VERSION   := git
+DOWNLOADS := expat.git
+
+URL(expat) := https://android.googlesource.com/platform/external/expat
+DIR(expat) := expat
+REV(expat) := android-9.0.0_r45
+DEPTH(expat) := 1
