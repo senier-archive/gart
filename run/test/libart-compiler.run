@@ -6,6 +6,10 @@ set build_components {
 	core init timer
 	test/dummy_java_libs
 	test/libart-compiler
+	test/gart_gtest/AbstractMethod
+	test/gart_gtest/ExceptionHandle
+	test/gart_gtest/Interfaces
+	test/gart_gtest/MyClassNatives
 }
 
 source ${genode_dir}/repos/base/run/platform_drv.inc
@@ -60,6 +64,13 @@ install_config {
 					<dir name="framework">
 						<tar name="framework.tar"/>
 					</dir>
+					<dir name="etc">
+						<inline name="public.libraries.txt">
+						</inline>
+					</dir>
+				</dir>
+				<dir name="test">
+					<tar name="testdata.tar"/>
 				</dir>
 			</vfs>
 			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" />
@@ -71,11 +82,272 @@ install_config {
 	</start>
 </config>}
 
+# <arg value="--gtest_filter="/>
+
+# FIXME: Failing tests
+#
+# DwarfTest.DebugInfo
+# DwarfTest.DebugLineSpecialOpcodes
+# DwarfTest.DebugLine
+# DwarfTest.x86_64_RegisterMapping
+# DwarfTest.DebugFrame64
+# DwarfTest.DebugFrame
+# DexToDexDecompilerTest.DexToDexDecompiler
+# DexToDexDecompilerTest.VerifierDeps
+# CompilerDriverVerifyTest.RetryVerifcationStatusCheckVerified:
+# CompilerDriverVerifyTest.VerifyCompilation
+# CompilerDriverProfileTest.ProfileGuidedCompilation
+# CompilerDriverMethodsTest.Selection
+# CompilerDriverTest.AbstractMethodErrorStub
+# ExceptionTest.StackTraceElement
+# VerifierDepsTest.EncodeDecode
+# VerifierDepsTest.EncodeDecodeMulti
+# VerifierDepsTest.UnverifiedClasses
+# VerifierDepsTest.VerifyDeps
+# VerifierDepsTest.CompilerDriver
+# VerifierDepsTest.MultiDexVerification
+# SwapSpaceTest.Memory
+# SwapSpaceTest.Swap
+# SchedulerTest.RandomScheduling
+# CodegenTest.ReturnVoid
+# CodegenTest.CFG1
+# CodegenTest.CFG2
+# CodegenTest.CFG3
+# CodegenTest.CFG4
+# CodegenTest.CFG5
+# CodegenTest.IntConstant
+# CodegenTest.Return1
+# CodegenTest.Return2
+# CodegenTest.Return3
+# CodegenTest.ReturnIf1
+# CodegenTest.ReturnIf2
+# CodegenTest.ReturnNotIntMinus2
+# CodegenTest.ReturnNotIntMinus1
+# CodegenTest.ReturnNotInt0
+# CodegenTest.ReturnNotInt1
+# CodegenTest.ReturnNotIntINT32_MIN
+# CodegenTest.ReturnNotIntINT32_MINPlus1
+# CodegenTest.ReturnNotIntINT32_MAXMinus1
+# CodegenTest.ReturnNotIntINT32_MAX
+# CodegenTest.ReturnNotLongMinus2
+# CodegenTest.ReturnNotLongMinus1
+# CodegenTest.ReturnNotLong0
+# CodegenTest.ReturnNotLong1
+# CodegenTest.ReturnNotLongINT32_MIN
+# CodegenTest.ReturnNotLongINT32_MINPlus1
+# CodegenTest.ReturnNotLongINT32_MAXMinus1
+# CodegenTest.ReturnNotLongINT32_MAX
+# CodegenTest.ReturnNotINT64_MIN
+# CodegenTest.ReturnNotINT64_MINPlus1
+# CodegenTest.ReturnNotLongINT64_MAXMinus1
+# CodegenTest.ReturnNotLongINT64_MAX
+# CodegenTest.IntToLongOfLongToInt
+# CodegenTest.ReturnAdd1
+# CodegenTest.ReturnAdd2
+# CodegenTest.ReturnAdd3
+# CodegenTest.ReturnAdd4
+# CodegenTest.ReturnMulInt
+# CodegenTest.ReturnMulInt2addr
+# CodegenTest.ReturnMulLong
+# CodegenTest.ReturnMulLong2addr
+# CodegenTest.ReturnMulIntLit8
+# CodegenTest.ReturnMulIntLit16
+# CodegenTest.NonMaterializedCondition
+# CodegenTest.MaterializedCondition1
+# CodegenTest.MaterializedCondition2
+# CodegenTest.ReturnDivIntLit8
+# CodegenTest.ReturnDivInt2Addr
+# CodegenTest.ComparisonsInt
+# CodegenTest.ComparisonsLong
+# CodegenTest.ARMVIXLParallelMoveResolver
+# CodegenTest.ARM64ParallelMoveResolverB34760542
+# CodegenTest.ARM64ParallelMoveResolverSIMD
+# JniCompilerTest.CompileAndRunNoArgMethodNormalCompiler
+# JniCompilerTest.CompileAndRunNoArgMethodNormalGeneric
+# JniCompilerTest.CompileAndRunNoArgMethodFastCompiler
+# JniCompilerTest.CompileAndRunNoArgMethodFastGeneric
+# JniCompilerTest.CompileAndRunIntMethodThroughStubNormalCompiler
+# JniCompilerTest.CompileAndRunIntMethodThroughStubNormalGeneric
+# JniCompilerTest.CompileAndRunStaticIntMethodThroughStubNormalCompiler
+# JniCompilerTest.CompileAndRunStaticIntMethodThroughStubNormalGeneric
+# JniCompilerTest.CompileAndRunIntMethodNormalCompiler
+# JniCompilerTest.CompileAndRunIntMethodNormalGeneric
+# JniCompilerTest.CompileAndRunIntMethodFastCompiler
+# JniCompilerTest.CompileAndRunIntMethodFastGeneric
+# JniCompilerTest.CompileAndRunIntIntMethodNormalCompiler
+# JniCompilerTest.CompileAndRunIntIntMethodNormalGeneric
+# JniCompilerTest.CompileAndRunIntIntMethodFastCompiler
+# JniCompilerTest.CompileAndRunIntIntMethodFastGeneric
+# JniCompilerTest.CompileAndRunLongLongMethodNormalCompiler
+# JniCompilerTest.CompileAndRunLongLongMethodNormalGeneric
+# JniCompilerTest.CompileAndRunLongLongMethodFastCompiler
+# JniCompilerTest.CompileAndRunLongLongMethodFastGeneric
+# JniCompilerTest.CompileAndRun_fooJJ_synchronizedNormalCompiler
+# JniCompilerTest.CompileAndRun_fooJJ_synchronizedNormalGeneric
+# JniCompilerTest.CompileAndRunIntObjectObjectMethodNormalCompiler
+# JniCompilerTest.CompileAndRunIntObjectObjectMethodNormalGeneric
+# JniCompilerTest.CompileAndRunIntObjectObjectMethodFastCompiler
+# JniCompilerTest.CompileAndRunIntObjectObjectMethodFastGeneric
+# JniCompilerTest.CompileAndRunStaticIntIntMethodNormalCompiler
+# JniCompilerTest.CompileAndRunStaticIntIntMethodNormalGeneric
+# JniCompilerTest.CompileAndRunStaticIntIntMethodFastCompiler
+# JniCompilerTest.CompileAndRunStaticIntIntMethodFastGeneric
+# JniCompilerTest.CompileAndRunStaticIntIntMethodCriticalCompiler
+# JniCompilerTest.CompileAndRunStaticIntIntMethodCriticalGeneric
+# JniCompilerTest.CompileAndRunStaticDoubleDoubleMethodNormalCompiler
+# JniCompilerTest.CompileAndRunStaticDoubleDoubleMethodNormalGeneric
+# JniCompilerTest.CompileAndRunStaticDoubleDoubleMethodFastCompiler
+# JniCompilerTest.CompileAndRunStaticDoubleDoubleMethodFastGeneric
+# JniCompilerTest.CompileAndRunStaticDoubleDoubleMethodCriticalCompiler
+# JniCompilerTest.CompileAndRunStaticDoubleDoubleMethodCriticalGeneric
+# JniCompilerTest.RunStaticLogDoubleMethodNormalCompiler
+# JniCompilerTest.RunStaticLogDoubleMethodNormalGeneric
+# JniCompilerTest.RunStaticLogDoubleMethodFastCompiler
+# JniCompilerTest.RunStaticLogDoubleMethodFastGeneric
+# JniCompilerTest.RunStaticLogDoubleMethodCriticalCompiler
+# JniCompilerTest.RunStaticLogDoubleMethodCriticalGeneric
+# JniCompilerTest.RunStaticLogFloatMethodNormalCompiler
+# JniCompilerTest.RunStaticLogFloatMethodNormalGeneric
+# JniCompilerTest.RunStaticLogFloatMethodFastCompiler
+# JniCompilerTest.RunStaticLogFloatMethodFastGeneric
+# JniCompilerTest.RunStaticLogFloatMethodCriticalCompiler
+# JniCompilerTest.RunStaticLogFloatMethodCriticalGeneric
+# JniCompilerTest.RunStaticReturnTrueNormalCompiler
+# JniCompilerTest.RunStaticReturnTrueNormalGeneric
+# JniCompilerTest.RunStaticReturnTrueFastCompiler
+# JniCompilerTest.RunStaticReturnTrueFastGeneric
+# JniCompilerTest.RunStaticReturnTrueCriticalCompiler
+# JniCompilerTest.RunStaticReturnTrueCriticalGeneric
+# JniCompilerTest.RunStaticReturnFalseNormalCompiler
+# JniCompilerTest.RunStaticReturnFalseNormalGeneric
+# JniCompilerTest.RunStaticReturnFalseFastCompiler
+# JniCompilerTest.RunStaticReturnFalseFastGeneric
+# JniCompilerTest.RunStaticReturnFalseCriticalCompiler
+# JniCompilerTest.RunStaticReturnFalseCriticalGeneric
+# JniCompilerTest.RunGenericStaticReturnIntNormalCompiler
+# JniCompilerTest.RunGenericStaticReturnIntNormalGeneric
+# JniCompilerTest.RunGenericStaticReturnIntFastCompiler
+# JniCompilerTest.RunGenericStaticReturnIntFastGeneric
+# JniCompilerTest.RunGenericStaticReturnIntCriticalCompiler
+# JniCompilerTest.RunGenericStaticReturnIntCriticalGeneric
+# JniCompilerTest.RunGenericStaticReturnDoubleNormalCompiler
+# JniCompilerTest.RunGenericStaticReturnDoubleNormalGeneric
+# JniCompilerTest.RunGenericStaticReturnDoubleFastCompiler
+# JniCompilerTest.RunGenericStaticReturnDoubleFastGeneric
+# JniCompilerTest.RunGenericStaticReturnDoubleCriticalCompiler
+# JniCompilerTest.RunGenericStaticReturnDoubleCriticalGeneric
+# JniCompilerTest.RunGenericStaticReturnLongNormalCompiler
+# JniCompilerTest.RunGenericStaticReturnLongNormalGeneric
+# JniCompilerTest.RunGenericStaticReturnLongFastCompiler
+# JniCompilerTest.RunGenericStaticReturnLongFastGeneric
+# JniCompilerTest.RunGenericStaticReturnLongCriticalCompiler
+# JniCompilerTest.RunGenericStaticReturnLongCriticalGeneric
+# JniCompilerTest.CompileAndRunStaticIntObjectObjectMethodNormalCompiler
+# JniCompilerTest.CompileAndRunStaticIntObjectObjectMethodNormalGeneric
+# JniCompilerTest.CompileAndRunStaticIntObjectObjectMethodFastCompiler
+# JniCompilerTest.CompileAndRunStaticIntObjectObjectMethodFastGeneric
+# JniCompilerTest.CompileAndRunStaticSynchronizedIntObjectObjectMethodNormalCompiler
+# JniCompilerTest.CompileAndRunStaticSynchronizedIntObjectObjectMethodNormalGeneric
+# JniCompilerTest.ExceptionHandlingNormalCompiler
+# JniCompilerTest.ExceptionHandlingNormalGeneric
+# JniCompilerTest.ExceptionHandlingFastCompiler
+# JniCompilerTest.ExceptionHandlingFastGeneric
+# JniCompilerTest.NativeStackTraceElementNormalCompiler
+# JniCompilerTest.NativeStackTraceElementNormalGeneric
+# JniCompilerTest.NativeStackTraceElementFastCompiler
+# JniCompilerTest.NativeStackTraceElementFastGeneric
+# JniCompilerTest.ReturnGlobalRefNormalCompiler
+# JniCompilerTest.ReturnGlobalRefNormalGeneric
+# JniCompilerTest.ReturnGlobalRefFastCompiler
+# JniCompilerTest.ReturnGlobalRefFastGeneric
+# JniCompilerTest.LocalReferenceTableClearingTestNormalCompiler
+# JniCompilerTest.LocalReferenceTableClearingTestNormalGeneric
+# JniCompilerTest.LocalReferenceTableClearingTestFastCompiler
+# JniCompilerTest.LocalReferenceTableClearingTestFastGeneric
+# JniCompilerTest.JavaLangSystemArrayCopyNormalCompiler
+# JniCompilerTest.JavaLangSystemArrayCopyNormalGeneric
+# JniCompilerTest.JavaLangSystemArrayCopyFastCompiler
+# JniCompilerTest.JavaLangSystemArrayCopyFastGeneric
+# JniCompilerTest.CompareAndSwapIntNormalCompiler
+# JniCompilerTest.CompareAndSwapIntNormalGeneric
+# JniCompilerTest.CompareAndSwapIntFastCompiler
+# JniCompilerTest.CompareAndSwapIntFastGeneric
+# JniCompilerTest.GetTextNormalCompiler
+# JniCompilerTest.GetTextNormalGeneric
+# JniCompilerTest.GetTextFastCompiler
+# JniCompilerTest.GetTextFastGeneric
+# JniCompilerTest.GetSinkPropertiesNativeNormalCompiler
+# JniCompilerTest.GetSinkPropertiesNativeNormalGeneric
+# JniCompilerTest.UpcallReturnTypeChecking_InstanceNormalCompiler
+# JniCompilerTest.UpcallReturnTypeChecking_InstanceNormalGeneric
+# JniCompilerTest.UpcallReturnTypeChecking_InstanceFastCompiler
+# JniCompilerTest.UpcallReturnTypeChecking_InstanceFastGeneric
+# JniCompilerTest.UpcallReturnTypeChecking_StaticNormalCompiler
+# JniCompilerTest.UpcallReturnTypeChecking_StaticNormalGeneric
+# JniCompilerTest.UpcallReturnTypeChecking_StaticFastCompiler
+# JniCompilerTest.UpcallReturnTypeChecking_StaticFastGeneric
+# JniCompilerTest.UpcallArgumentTypeChecking_InstanceNormalCompiler
+# JniCompilerTest.UpcallArgumentTypeChecking_InstanceNormalGeneric
+# JniCompilerTest.UpcallArgumentTypeChecking_InstanceFastCompiler
+# JniCompilerTest.UpcallArgumentTypeChecking_InstanceFastGeneric
+# JniCompilerTest.UpcallArgumentTypeChecking_StaticNormalCompiler
+# JniCompilerTest.UpcallArgumentTypeChecking_StaticNormalGeneric
+# JniCompilerTest.UpcallArgumentTypeChecking_StaticFastCompiler
+# JniCompilerTest.UpcallArgumentTypeChecking_StaticFastGeneric
+# JniCompilerTest.CompileAndRunFloatFloatMethodNormalCompiler
+# JniCompilerTest.CompileAndRunFloatFloatMethodNormalGeneric
+# JniCompilerTest.CompileAndRunFloatFloatMethodFastCompiler
+# JniCompilerTest.CompileAndRunFloatFloatMethodFastGeneric
+# JniCompilerTest.CheckParameterAlignNormalCompiler
+# JniCompilerTest.CheckParameterAlignNormalGeneric
+# JniCompilerTest.CheckParameterAlignFastCompiler
+# JniCompilerTest.CheckParameterAlignFastGeneric
+# JniCompilerTest.MaxParamNumberNormalCompiler
+# JniCompilerTest.MaxParamNumberNormalGeneric
+# JniCompilerTest.MaxParamNumberFastCompiler
+# JniCompilerTest.MaxParamNumberFastGeneric
+# JniCompilerTest.WithoutImplementationNormalCompiler
+# JniCompilerTest.WithoutImplementationNormalGeneric
+# JniCompilerTest.WithoutImplementationRefReturnNormalCompiler
+# JniCompilerTest.WithoutImplementationRefReturnNormalGeneric
+# JniCompilerTest.StackArgsIntsFirstNormalCompiler
+# JniCompilerTest.StackArgsIntsFirstNormalGeneric
+# JniCompilerTest.StackArgsIntsFirstFastCompiler
+# JniCompilerTest.StackArgsIntsFirstFastGeneric
+# JniCompilerTest.StackArgsIntsFirstCriticalCompiler
+# JniCompilerTest.StackArgsIntsFirstCriticalGeneric
+# JniCompilerTest.StackArgsFloatsFirstNormalCompiler
+# JniCompilerTest.StackArgsFloatsFirstNormalGeneric
+# JniCompilerTest.StackArgsFloatsFirstFastCompiler
+# JniCompilerTest.StackArgsFloatsFirstFastGeneric
+# JniCompilerTest.StackArgsFloatsFirstCriticalCompiler
+# JniCompilerTest.StackArgsFloatsFirstCriticalGeneric
+# JniCompilerTest.StackArgsMixedNormalCompiler
+# JniCompilerTest.StackArgsMixedNormalGeneric
+# JniCompilerTest.StackArgsMixedFastCompiler
+# JniCompilerTest.StackArgsMixedFastGeneric
+# JniCompilerTest.StackArgsMixedCriticalCompiler
+# JniCompilerTest.StackArgsMixedCriticalGeneric
+# JniCompilerTest.NormalNativeNormalCompiler
+# JniCompilerTest.NormalNativeNormalGeneric
+# JniCompilerTest.FastNativeNormalCompiler
+# JniCompilerTest.FastNativeNormalGeneric
+# JniCompilerTest.CriticalNativeNormalCompiler
+# JniCompilerTest.CriticalNativeNormalGeneric
+
 #
 # Boot image
 #
 
 exec tar --transform s/.jar/-testdex.jar/ -cf bin/framework.tar -C bin core-libart.jar core-oj.jar
+
+exec cp [genode_dir]/repos/gart/test/data/art-gtest-VerifierDeps.jar bin/
+exec tar -cf bin/testdata.tar -C bin \
+	art-gtest-AbstractMethod.jar \
+	art-gtest-ExceptionHandle.jar \
+	art-gtest-Interfaces.jar \
+	art-gtest-MyClassNatives.jar \
+	art-gtest-VerifierDeps.jar
 
 # generic modules
 set boot_modules {
@@ -106,6 +378,7 @@ set boot_modules {
 	gart_libicui18n.lib.so
 	libart-compiler_test
 	framework.tar
+	testdata.tar
 }
 
 append_platform_drv_boot_modules

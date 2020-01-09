@@ -1,0 +1,5 @@
+To generate `art-gtest-VerifierDeps.jar` in a built AOSP tree run:
+
+```sh
+out/host/linux-x86/bin/smali assemble -o art-gtest-VerifierDeps.jar art/test/VerifierDeps/*.smali
+```
