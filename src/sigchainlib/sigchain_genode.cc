@@ -2,19 +2,25 @@
 
 #include "sigchain.h"
 
+#if 0
+#define NOT_IMPLEMENTED Genode::warning(__func__, ": not implemented")
+#else
+#define NOT_IMPLEMENTED
+#endif
+
 namespace art {
 
 extern "C" void EnsureFrontOfChain(int signal) {
-  Genode::warning(__func__, ": not implemented");
+    NOT_IMPLEMENTED;
 }
 
 extern "C" void AddSpecialSignalHandlerFn(int signal, SigchainAction* sa) {
-  Genode::warning(__func__, ": not implemented");
+    NOT_IMPLEMENTED;
 }
 
 extern "C" void RemoveSpecialSignalHandlerFn(int signal,
                                              bool (*fn)(int, siginfo_t*, void*)) {
-  Genode::warning(__func__, ": not implemented");
+    NOT_IMPLEMENTED;
 }
 
 }
