@@ -1,2 +1,3 @@
+#pragma once
 #include_next <cstdlib>
 #include <gart_abort.h>
