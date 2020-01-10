@@ -6,6 +6,7 @@ set build_components {
 	core init timer
 	lib/vfs/jitterentropy
 	lib/vfs/pipe
+	lib/gart_libcore
 	test/dummy_java_libs
 	test/libart-compiler
 	test/gart_gtest/AbstractMethod
@@ -73,6 +74,11 @@ install_config {
 					<dir name="etc">
 						<inline name="public.libraries.txt">
 						</inline>
+					</dir>
+					<dir name="usr">
+						<dir name="icu">
+							<tar name="icu.tar"/>
+						</dir>
 					</dir>
 				</dir>
 				<dir name="test">
@@ -395,9 +401,13 @@ set boot_modules {
 	gart_libart-disassembler.lib.so
 	gart_libart-compiler.lib.so
 	gart_libicui18n.lib.so
+	gart_libcore.lib.so
+	gart_libcrypto.lib.so
+	gart_libexpat.lib.so
 	libart-compiler_test
 	framework.tar
 	testdata.tar
+	icu.tar
 }
 
 append_platform_drv_boot_modules
