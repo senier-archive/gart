@@ -2,7 +2,7 @@ ANDROID_PORT		= libcore
 ANDROID_DIR			= libcore
 ANDROID_SECTIONS	= /cc_library_shared[@name=libjavacore]
 ANDROID_BUILDFILES  = luni/src/main/native/Android.bp ojluni/src/main/native/Android.bp NativeCode.bp
-ANDROID_SOURCES     = luni/src/main/native
+ANDROID_SOURCES     = . luni/src/main/native
 
 ANDROID_EXCLUDE_CC += luni/src/main/native/libcore_io_Linux.cpp
 
