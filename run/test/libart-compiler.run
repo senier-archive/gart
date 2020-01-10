@@ -404,6 +404,7 @@ set boot_modules {
 	gart_libcore.lib.so
 	gart_libcrypto.lib.so
 	gart_libexpat.lib.so
+	gart_libcore.lib.so
 	libart-compiler_test
 	framework.tar
 	testdata.tar
