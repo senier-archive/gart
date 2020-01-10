@@ -13,7 +13,13 @@ MSG_ZIPALIGN ?= @$(ECHO) " ZIPALIGN   "
 
 JAVAC ?= $(GART_JDK9_PATH)/javac
 JAR ?= $(GART_JDK9_PATH)/jar
-D8 ?= $(call select_from_ports,gart_r8)/r8/buildtools/d8-master.jar
+
+R8_PATH = $(call select_from_ports,gart_r8)
+ifeq ($(R8_PATH),)
+$(error gart_r8 not prepared)
+endif
+
+D8 ?= $(R8_PATH)/r8/buildtools/d8-master.jar
 ZIPALIGN ?= $(call select_from_ports,gart_build-tools)/build-tools/linux-x86/bin/zipalign
 
 JAVA_OPTS += \
@@ -65,11 +71,12 @@ JAVA_INCLUDE_DIRS += $(call select_from_ports,gart_icu)/icu/android_icu4j/src/ma
 JAVA_INCLUDE_DIRS += $(addprefix $(call select_from_ports,gart_libcore)/libcore/,$(LIBCORE_INCLUDE_DIRS))
 JAVA_CLASS_PATHS   = $(subst $(SPACE),:,$(strip $(JAVA_INCLUDE_DIRS)))
 
+ifneq ($(called_from_lib_mk),)
+
 ifeq ($(JAVA_SOURCES),)
 $(error No Java sources in SRC_JAVA ($(SRC_JAVA)) found in $(JAVA_BASE_DIRS))
 endif
 
-ifneq ($(called_from_lib_mk),)
 # FIXME: Can we depend on the .a file?
 all: $(JAR_BASE_NAME).jar
 endif
@@ -81,5 +88,5 @@ $(JAR_BASE_NAME).jar:
 	$(VERBOSE)set -o pipefail; $(JAVAC) $(JAVA_OPTS) -d $(JAR_DIR) -classpath $(JAVA_CLASS_PATHS) @$(JAR_DIR)/sources.lst |& sed '/^Note:/d'
 	$(MSG_D8)$(notdir $@)
 	$(VERBOSE)find $(JAR_DIR) -type f -name *.class -printf '%P\n' > $(JAR_DIR)/files.lst
-	$(VERBOSE)set -o pipefail; (cd $(JAR_DIR) && java -jar $(D8) $(D8_OPTS) --output $(basename $@).tmp.jar $$(cat $(JAR_DIR)/files.lst))
+	$(VERBOSE)set -o pipefail; (cd $(JAR_DIR) && java -jar $(D8) $(D8_OPTS) --output $(basename $@).tmp.jar $$(cat files.lst))
 	$(VERBOSE)mv $(basename $@).tmp.jar $@
