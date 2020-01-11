@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include <sys/time.h>
+
 #define NOT_IMPLEMENTED Genode::warning(__func__, ": not implemented")
 
 class Raise : Genode::Exception { };
@@ -29,6 +31,21 @@ int raise(int sig) {
             Genode::error("raise(", sig, ")");
             return -1;
     }
+}
+
+int futimes (int fd, const struct timeval tv[2]) {
+	errno = ENOSYS;
+	return -1;
+}
+
+int lchown (const char *pathname, uid_t owner, gid_t group) {
+	errno = ENOSYS;
+	return -1;
+}
+
+int mincore (void *addr, size_t length, unsigned char *vec) {
+	errno = ENOSYS;
+	return -1;
 }
 
 }

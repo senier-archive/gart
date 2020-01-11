@@ -7,6 +7,7 @@ set build_components {
 	lib/vfs/jitterentropy
 	lib/vfs/pipe
 	lib/gart_libcore
+	lib/gart_libopenjdk
 	test/dummy_java_libs
 	test/libart-compiler
 	test/gart_gtest/AbstractMethod
@@ -405,6 +406,8 @@ set boot_modules {
 	gart_libcrypto.lib.so
 	gart_libexpat.lib.so
 	gart_libcore.lib.so
+	gart_libopenjdk.lib.so
+	gart_libopenjdkjvm.lib.so
 	libart-compiler_test
 	framework.tar
 	testdata.tar
