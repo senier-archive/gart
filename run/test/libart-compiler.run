@@ -408,6 +408,7 @@ set boot_modules {
 	gart_libcore.lib.so
 	gart_libopenjdk.lib.so
 	gart_libopenjdkjvm.lib.so
+	gart_libart-simulator.lib.so
 	libart-compiler_test
 	framework.tar
 	testdata.tar
