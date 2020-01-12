@@ -75,8 +75,9 @@ install_config {
 						<tar name="framework.tar"/>
 					</dir>
 					<dir name="etc">
-						<inline name="public.libraries.txt">
-						</inline>
+						<inline name="public.libraries.txt"></inline>
+						<inline name="llndk.libraries.txt"></inline>
+						<inline name="vndksp.libraries.txt"></inline>
 					</dir>
 					<dir name="usr">
 						<dir name="icu">
