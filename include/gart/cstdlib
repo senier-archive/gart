@@ -1,3 +1,6 @@
 #pragma once
 #include_next <cstdlib>
+
+#ifdef GART_ABORT_MACRO
 #include <gart_abort.h>
+#endif

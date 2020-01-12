@@ -24,3 +24,5 @@ CC_OPT += -DART_ENABLE_CODEGEN_x86_64
 # Base address (derived from build/soong/android/config.go)
 CC_OPT += -DART_BASE_ADDRESS=0x70000000
 
+# Enable abort() macro
+CC_OPT += -DGART_ABORT_MACRO
