@@ -89,7 +89,7 @@ install_config {
 			</vfs>
 			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" pipe="/dev/pipe" rng="/dev/random" />
 			<start name="/bin/libart-compiler_test">
-				<arg value="--gtest_filter=ExceptionTest.StackTraceElement"/>
+				<arg value="--gtest_filter=JniCompilerTest.*"/>
 				<env name="ANDROID_DATA" value="/data"/>
 				<env name="ANDROID_ROOT" value="/system"/>
 			</start>
@@ -99,84 +99,6 @@ install_config {
 
 # FIXME: Failing tests
 # 
-# VerifierDepsTest.EncodeDecode
-# VerifierDepsTest.EncodeDecodeMulti
-# VerifierDepsTest.UnverifiedClasses
-# VerifierDepsTest.VerifyDeps
-# VerifierDepsTest.CompilerDriver
-# VerifierDepsTest.MultiDexVerification
-# SwapSpaceTest.Memory
-# SwapSpaceTest.Swap
-# SchedulerTest.RandomScheduling
-# CodegenTest.ReturnVoid
-# CodegenTest.CFG1
-# CodegenTest.CFG2
-# CodegenTest.CFG3
-# CodegenTest.CFG4
-# CodegenTest.CFG5
-# CodegenTest.IntConstant
-# CodegenTest.Return1
-# CodegenTest.Return2
-# CodegenTest.Return3
-# CodegenTest.ReturnIf1
-# CodegenTest.ReturnIf2
-# CodegenTest.ReturnNotIntMinus2
-# CodegenTest.ReturnNotIntMinus1
-# CodegenTest.ReturnNotInt0
-# CodegenTest.ReturnNotInt1
-# CodegenTest.ReturnNotIntINT32_MIN
-# CodegenTest.ReturnNotIntINT32_MINPlus1
-# CodegenTest.ReturnNotIntINT32_MAXMinus1
-# CodegenTest.ReturnNotIntINT32_MAX
-# CodegenTest.ReturnNotLongMinus2
-# CodegenTest.ReturnNotLongMinus1
-# CodegenTest.ReturnNotLong0
-# CodegenTest.ReturnNotLong1
-# CodegenTest.ReturnNotLongINT32_MIN
-# CodegenTest.ReturnNotLongINT32_MINPlus1
-# CodegenTest.ReturnNotLongINT32_MAXMinus1
-# CodegenTest.ReturnNotLongINT32_MAX
-# CodegenTest.ReturnNotINT64_MIN
-# CodegenTest.ReturnNotINT64_MINPlus1
-# CodegenTest.ReturnNotLongINT64_MAXMinus1
-# CodegenTest.ReturnNotLongINT64_MAX
-# CodegenTest.IntToLongOfLongToInt
-# CodegenTest.ReturnAdd1
-# CodegenTest.ReturnAdd2
-# CodegenTest.ReturnAdd3
-# CodegenTest.ReturnAdd4
-# CodegenTest.ReturnMulInt
-# CodegenTest.ReturnMulInt2addr
-# CodegenTest.ReturnMulLong
-# CodegenTest.ReturnMulLong2addr
-# CodegenTest.ReturnMulIntLit8
-# CodegenTest.ReturnMulIntLit16
-# CodegenTest.NonMaterializedCondition
-# CodegenTest.MaterializedCondition1
-# CodegenTest.MaterializedCondition2
-# CodegenTest.ReturnDivIntLit8
-# CodegenTest.ReturnDivInt2Addr
-# CodegenTest.ComparisonsInt
-# CodegenTest.ComparisonsLong
-# CodegenTest.ARMVIXLParallelMoveResolver
-# CodegenTest.ARM64ParallelMoveResolverB34760542
-# CodegenTest.ARM64ParallelMoveResolverSIMD
-# JniCompilerTest.CompileAndRunNoArgMethodNormalCompiler
-# JniCompilerTest.CompileAndRunNoArgMethodNormalGeneric
-# JniCompilerTest.CompileAndRunNoArgMethodFastCompiler
-# JniCompilerTest.CompileAndRunNoArgMethodFastGeneric
-# JniCompilerTest.CompileAndRunIntMethodThroughStubNormalCompiler
-# JniCompilerTest.CompileAndRunIntMethodThroughStubNormalGeneric
-# JniCompilerTest.CompileAndRunStaticIntMethodThroughStubNormalCompiler
-# JniCompilerTest.CompileAndRunStaticIntMethodThroughStubNormalGeneric
-# JniCompilerTest.CompileAndRunIntMethodNormalCompiler
-# JniCompilerTest.CompileAndRunIntMethodNormalGeneric
-# JniCompilerTest.CompileAndRunIntMethodFastCompiler
-# JniCompilerTest.CompileAndRunIntMethodFastGeneric
-# JniCompilerTest.CompileAndRunIntIntMethodNormalCompiler
-# JniCompilerTest.CompileAndRunIntIntMethodNormalGeneric
-# JniCompilerTest.CompileAndRunIntIntMethodFastCompiler
-# JniCompilerTest.CompileAndRunIntIntMethodFastGeneric
 # JniCompilerTest.CompileAndRunLongLongMethodNormalCompiler
 # JniCompilerTest.CompileAndRunLongLongMethodNormalGeneric
 # JniCompilerTest.CompileAndRunLongLongMethodFastCompiler
@@ -336,26 +258,61 @@ install_config {
 
 # BUGS
 #
-# mutex-inl.h:217] Check failed: self->GetHeldMutex(level_) == this (self->GetHeldMutex(level_)=0, this=0x7f2792940af8)
-# - DexToDexDecompilerTest.DexToDexDecompiler
+### mutex-inl.h:217] Check failed: self->GetHeldMutex(level_) == this (self->GetHeldMutex(level_)=0, this=0x7f2792940af8)
 #
-# mutex-inl.h:243] Check failed: self->GetHeldMutex(level_) == this (self->GetHeldMutex(level_)=0, this=0x7f29ea82e6d0)
+# - DexToDexDecompilerTest.DexToDexDecompiler
+# - VerifierDepsTest.VerifyDeps
+# - JniCompilerTest.CompileAndRunIntMethodThroughStubNormalCompiler
+# - JniCompilerTest.CompileAndRunIntMethodFastCompiler
+# - JniCompilerTest.CompileAndRunIntIntMethodFastCompiler
+#
+### mutex-inl.h:243] Check failed: self->GetHeldMutex(level_) == this (self->GetHeldMutex(level_)=0, this=0x7f29ea82e6d0)
+#
 # - CompilerDriverProfileTest.ProfileGuidedCompilation
 # - CompilerDriverMethodsTest.Selection
 # - CompilerDriverTest.AbstractMethodErrorStub
+# - VerifierDepsTest.MultiDexVerification
+# - JniCompilerTest.CompileAndRunStaticIntMethodThroughStubNormalCompiler
 #
-# Validation failed
+### Validation failed
+#
 # - DexToDexDecompilerTest.VerifierDeps
-
-### Unsupported
+# - VerifierDepsTest.EncodeDecode
+# - VerifierDepsTest.EncodeDecodeMulti
+# - VerifierDepsTest.UnverifiedClasses
+# - VerifierDepsTest.CompilerDriver
+# - JniCompilerTest.CompileAndRunIntMethodThroughStubNormalGeneric
+# - JniCompilerTest.CompileAndRunStaticIntMethodThroughStubNormalGeneric
 #
-# Just for debugging
+### mutex.cc:852] Non futex case isn't supported.
 #
-# DwarfTest.DebugLineSpecialOpcodes
-# DwarfTest.DebugLine
-# DwarfTest.x86_64_RegisterMapping
-# DwarfTest.DebugFrame64
-# DwarfTest.DebugFrame
+# - JniCompilerTest.CompileAndRunNoArgMethodNormalCompiler
+# - JniCompilerTest.CompileAndRunNoArgMethodFastCompiler
+# - JniCompilerTest.CompileAndRunIntMethodNormalCompiler
+# - JniCompilerTest.CompileAndRunIntIntMethodNormalCompiler
+#
+### Crash
+#
+# - JniCompilerTest.CompileAndRunNoArgMethodNormalGeneric
+# - JniCompilerTest.CompileAndRunNoArgMethodFastGeneric
+# - JniCompilerTest.CompileAndRunIntMethodNormalGeneric
+# - JniCompilerTest.CompileAndRunIntMethodFastGeneric
+# - JniCompilerTest.CompileAndRunIntIntMethodNormalGeneric
+# - JniCompilerTest.CompileAndRunIntIntMethodFastGeneric
+#
+### Hangs
+#
+# - SwapSpaceTest.Memory
+# - SwapSpaceTest.Swap
+# - SchedulerTest.RandomScheduling
+#
+### Just for debugging
+#
+# - DwarfTest.DebugLineSpecialOpcodes
+# - DwarfTest.DebugLine
+# - DwarfTest.x86_64_RegisterMapping
+# - DwarfTest.DebugFrame64
+# - DwarfTest.DebugFrame
 
 #
 # Boot image
