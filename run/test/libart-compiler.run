@@ -6,6 +6,7 @@ set build_components {
 	core init timer
 	lib/vfs/jitterentropy
 	lib/vfs/pipe
+	lib/gart_libart-simulator
 	lib/gart_libcore
 	lib/gart_libopenjdk
 	test/dummy_java_libs
