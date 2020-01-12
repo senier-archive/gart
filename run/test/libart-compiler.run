@@ -14,6 +14,7 @@ set build_components {
 	test/gart_gtest/DexToDexDecompiler
 	test/gart_gtest/ExceptionHandle
 	test/gart_gtest/Interfaces
+	test/gart_gtest/MultiDex
 	test/gart_gtest/MyClassNatives
 	test/gart_gtest/ProfileTestMultiDex
 	test/gart_gtest/StaticLeafMethods
@@ -362,16 +363,21 @@ install_config {
 
 exec tar --transform s/.jar/-testdex.jar/ -cf bin/framework.tar -C bin core-libart.jar core-oj.jar
 
-exec cp [genode_dir]/repos/gart/test/data/art-gtest-VerifierDeps.jar bin/
+exec cp [genode_dir]/repos/gart/test/data/art-gtest-VerifierDeps.jar \
+	[genode_dir]/repos/gart/test/data/art-gtest-VerifierDepsMulti.jar \
+	bin/
+
 exec tar -cf bin/testdata.tar -C bin \
 	art-gtest-AbstractMethod.jar \
 	art-gtest-DexToDexDecompiler.jar \
 	art-gtest-ExceptionHandle.jar \
 	art-gtest-Interfaces.jar \
+	art-gtest-MultiDex.jar \
 	art-gtest-MyClassNatives.jar \
 	art-gtest-ProfileTestMultiDex.jar \
 	art-gtest-StaticLeafMethods.jar \
-	art-gtest-VerifierDeps.jar
+	art-gtest-VerifierDeps.jar \
+	art-gtest-VerifierDepsMulti.jar
 
 # generic modules
 set boot_modules {
