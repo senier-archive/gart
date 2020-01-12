@@ -15,7 +15,7 @@ extern "C" {
 bool android_init_anonymous_namespace(const char* shared_libs_sonames,
                                       const char* library_search_path) {
     NOT_IMPLEMENTED;
-    return false;
+    return true;
 }
 
 android_namespace_t* android_get_exported_namespace(const char* name)
@@ -29,7 +29,7 @@ bool android_link_namespaces(android_namespace_t* from,
                              const char* shared_libs_sonames)
 {
     NOT_IMPLEMENTED;
-    return false;
+    return true;
 }
 
 struct android_namespace_t* android_create_namespace(const char* name,
