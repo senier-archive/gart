@@ -7,6 +7,7 @@
 #include <unistd.h>
 
 #include <sys/time.h>
+#include <sys/auxv.h>
 
 #define NOT_IMPLEMENTED Genode::warning(__func__, ": not implemented")
 
@@ -46,6 +47,10 @@ int lchown (const char *pathname, uid_t owner, gid_t group) {
 int mincore (void *addr, size_t length, unsigned char *vec) {
 	errno = ENOSYS;
 	return -1;
+}
+
+unsigned long getauxval(unsigned long type) {
+	return 0;
 }
 
 }
