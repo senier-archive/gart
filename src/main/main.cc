@@ -29,7 +29,7 @@ void Libc::Component::construct(Libc::Env &env)
 {
     WAIT_FOR_CONTINUE;
     Genode::Attached_rom_dataspace config { env, "config" };
-    gart::init_genode_env(env);
+    gart::init_genode_env(&env);
 
 	Libc::with_libc([&] {
 
