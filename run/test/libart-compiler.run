@@ -30,7 +30,10 @@ create_boot_directory
 # Generate config
 #
 
-install_config {
+proc test_args {} { return "$::env(TEST_ARGS)" }
+
+set config ""
+append config {
 <config verbose="yes">
 	<parent-provides>
 		<service name="ROM"/>
@@ -91,13 +94,15 @@ install_config {
 			</vfs>
 			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" pipe="/dev/pipe" rng="/dev/random" />
 			<start name="/bin/libart-compiler_test">
-				<arg value="--gtest_filter=JniCompilerTest.*"/>
+				<arg value="} [test_args] {"/>
 				<env name="ANDROID_DATA" value="/data"/>
 				<env name="ANDROID_ROOT" value="/system"/>
 			</start>
 		</config>
 	</start>
 </config>}
+
+install_config $config
 
 # FIXME: Failing tests
 # 
@@ -384,4 +389,4 @@ append_platform_drv_boot_modules
 build_boot_image $boot_modules
 
 append qemu_args " -m 512 -nographic "
-run_genode_until {.*child "libart-compiler_test" exited with exit value 0} 600
+run_genode_until {.*child "libart-compiler_test" exited with exit value 0} 120 
