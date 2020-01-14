@@ -1,7 +1,6 @@
 // Genode includes
 #include <base/log.h>
 #include <base/exception.h>
-#include <dataspace/client.h>
 #include <util/string.h>
 #include <region_map/region_map.h>
 
@@ -12,6 +11,7 @@
 
 // stdc++ includes
 #include <atomic>
+#include <list>
 
 // GART includes
 #include <gart/env.h>
@@ -28,6 +28,7 @@ static std::atomic_size_t lowmem_base = 0x1000;
 namespace art {
 
     std::mutex* MemMap::mem_maps_lock_ = nullptr;
+    static std::list<MemMap> mem_map_;
 
     class Error
     {
@@ -54,6 +55,7 @@ namespace art {
                                         , redzone_size_(redzone_size)
                                         , env_(gart::genode_env())
                                         , ram_ds_cap_(env_.ram().alloc(size))
+                                        , ds_(ram_ds_cap_)
                                         , address_space_(env_.pd().address_space())
     {
         //Genode::log(__func__, ": ", name.c_str(), " @ ", Genode::Hex(reinterpret_cast<unsigned long>(begin)), " size=", size, " prot=", prot);
@@ -74,16 +76,14 @@ namespace art {
             prot_ |= PROT_READ;
         }
 
-        Genode::Dataspace_client ds(ram_ds_cap_);
         size_ = size;
-        base_size_ = ds.size();
 
         int tries = 0;
         bool done = false;
         if (lowmem && begin == nullptr)
         {
             size_t adjust = 0x1000;
-            for (size_t b = lowmem_base; !done && b < (1UL << 32 - base_size_); b += adjust, tries += 1)
+            for (size_t b = lowmem_base; !done && b < (1UL << 32 - ds_.size()); b += adjust, tries += 1)
             {
                 try {
                     begin_ = address_space_.attach(ram_ds_cap_, 0, 0, true, reinterpret_cast<void *>(b), prot_ & PROT_EXEC, prot_ & PROT_WRITE);
@@ -95,7 +95,7 @@ namespace art {
                 Genode::error("Error mapping low-mem");
                 throw Error("Error mapping low-mem");
             }
-            size_t new_base = lowmem_base.load() + base_size_;
+            size_t new_base = lowmem_base.load() + ds_.size();
             lowmem_base.store(new_base);
         } else
         {
@@ -106,7 +106,7 @@ namespace art {
 
         // Initialize memory
         void *b = address_space_.attach(ram_ds_cap_, 0, 0, false, nullptr, false, true);
-        Genode::memset(b, 0, base_size_);
+        Genode::memset(b, 0, ds_.size());
         address_space_.detach(b);
     };
 
@@ -228,9 +228,15 @@ namespace art {
     {
         std::lock_guard<std::mutex> mu(*mem_maps_lock_);
         size_t new_base_size = RoundUp(new_size + PointerDiff(begin_, base_begin_), kPageSize);
-        if (new_base_size == base_size_)
+        if (new_base_size == ds_.size())
         {
             size_ = new_size;
+            return;
+        }
+
+        if (new_base_size > ds_.size())
+        {
+			Genode::error("Error increasing memmap size from ", ds_.size(), " to ", new_base_size);
             return;
         }
 
@@ -242,7 +248,6 @@ namespace art {
                                                                       /* local_addr */ begin_,
                                                                       /* executable */ prot_ & PROT_EXEC,
                                                                       /* writeable */ prot_ & PROT_WRITE);
-        base_size_ = new_base_size;
         size_ = new_size;
     }
 
@@ -302,14 +307,14 @@ namespace art {
     void MemMap::MadviseDontNeedAndZero()
     {
         std::lock_guard<std::mutex> mu(*mem_maps_lock_);
-        if (base_begin_ == nullptr && base_size_ == 0)
+        if (base_begin_ == nullptr && ds_.size() == 0)
         {
             return;
         }
 
         if (prot_ & PROT_WRITE && !kMadviseZeroes)
         {
-            Genode::memset(base_begin_, 0, base_size_);
+            Genode::memset(base_begin_, 0, ds_.size());
         }
     }
 
