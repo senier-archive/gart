@@ -58,7 +58,7 @@ namespace art {
                                         , ds_(ram_ds_cap_)
                                         , address_space_(env_.pd().address_space())
     {
-        //Genode::log(__func__, ": ", name.c_str(), " @ ", Genode::Hex(reinterpret_cast<unsigned long>(begin)), " size=", size, " prot=", prot);
+        //Genode::log(__func__, ": ", name.c_str(), " @ ", Genode::Hex(reinterpret_cast<unsigned long>(begin)), " size=", size, " write=", bool(prot & PROT_WRITE), " exec=", bool(prot & PROT_EXEC));
         assert ((prot_ & ~0xfUL) == 0, "Unsupported protection bits");
         assert (reuse == 0, "Reuse not implemented");
         assert ((reinterpret_cast<unsigned long>(begin) & 0xfff) == 0, "Address not page-aligned")
@@ -77,6 +77,7 @@ namespace art {
         }
 
         size_ = size;
+        base_size_ = ds_.size();
 
         int tries = 0;
         bool done = false;
@@ -116,6 +117,126 @@ namespace art {
         env_.ram().free(ram_ds_cap_);
     }
 
+    void Dump(std::string message) {
+		bool error = false;
+		uint8_t *last = 0;
+        fprintf(stderr, "   >>> MAP: %s\n", message.c_str());
+        for (auto it = mem_map_.begin(); it != mem_map_.end(); it++) {
+            if (it == mem_map_.end()) {
+                break;
+            }
+			if ((*it).BaseBegin() < last) {
+				fprintf(stderr, "      ERROR: Next entry not continuous!\n");
+				error = true;
+			}
+			int prot = (*it).GetProtect();
+			fprintf(stderr, "      %8.8llx %8.0llx %c%c - %s\n", (*it).BaseBegin(), (*it).BaseSize(), prot & PROT_WRITE ? 'w' : '_', prot & PROT_EXEC ? 'x' : '_', (*it).GetName().c_str());
+			last = reinterpret_cast<uint8_t *>((*it).BaseBegin()) + (*it).BaseSize();
+        }
+        fprintf(stderr, "   <<< MAP: %s\n", message.c_str());
+		if (error) {
+			abort();
+		}
+    }
+
+    bool Insert(MemMap* entry,
+                const char *name,
+                std::string* error_msg)
+    {
+        auto elem = mem_map_.begin();
+        while (elem != mem_map_.end()) {
+            if ((*elem).BaseBegin() > entry->BaseBegin()) {
+                auto next = std::next(elem, 1);
+                if (next != mem_map_.end() && entry->BaseEnd() >= (*next).BaseBegin()) {
+                    if (error_msg) {
+                        *error_msg = "Region '" + std::string(name) + "' overlaps '" + (*next).GetName() + "'";
+                    }
+                    return false;
+                }
+                break;
+            }
+            if ((*elem).BaseBegin() == entry->BaseBegin()
+				&& (*elem).BaseSize() == entry->BaseSize()
+				&& (*elem).GetProtect() == entry->GetProtect()) {
+                // Already inserted
+                return true;
+            }
+
+            if ((*elem).BaseBegin() == entry->BaseBegin()) {
+                if (error_msg) {
+                    *error_msg = "Conflicting region '" + std::string(name) + "' (" + (*elem).GetName() + ")";
+                }
+                return false;
+            }
+            elem++;
+        }
+        mem_map_.insert(elem, *entry);
+        return true;
+    };
+
+    MemMap * MemMap::Split(uint8_t *addr,
+                           size_t size,
+                           int prot,
+                           std::string name)
+    {
+		auto it = mem_map_.begin();
+        while (it != mem_map_.end()) {
+            if (addr == (*it).BaseBegin() && addr + size == (*it).BaseEnd()) {
+				break;
+            }
+			it++;
+        }
+        if (it == mem_map_.end()) {
+            return nullptr;
+        }
+
+        // detach
+        std::string  old_name(GetName());
+        uint8_t     *old_base_begin = reinterpret_cast<uint8_t *>(BaseBegin());
+        int          old_size       = BaseSize();
+        int          old_prot       = GetProtect();
+		delete this;
+
+        // left region
+        if (old_base_begin < addr) {
+            auto left = new MemMap (/* name         */ old_name,
+                                    /* begin        */ old_base_begin,
+                                    /* size         */ addr - old_base_begin,
+                                    /* base_begin   */ old_base_begin,
+                                    /* base_size    */ addr - old_base_begin,
+                                    /* prot         */ old_prot,
+                                    /* reuse        */ false,
+                                    /* redzone_size */ 0);
+            mem_map_.insert(it, *left);
+        }
+
+        // middle region
+        auto middle = new MemMap (/* name         */ name,
+                                     /* begin        */ addr,
+                                     /* size         */ size,
+                                     /* base_begin   */ addr,
+                                     /* base_size    */ size,
+                                     /* prot         */ prot,
+                                     /* reuse        */ false,
+                                     /* redzone_size */ 0);
+        mem_map_.insert(it, *middle);
+
+        // right region
+        if (old_base_begin + old_size >= middle->BaseEnd()) {
+            size_t s = old_base_begin + old_size - reinterpret_cast<uint8_t *>(middle->BaseEnd());
+            auto right = new MemMap (/* name         */ old_name,
+                                        /* begin        */ old_base_begin + old_size,
+                                        /* size         */ s,
+                                        /* base_begin   */ old_base_begin + old_size,
+                                        /* base_size    */ s,
+                                        /* prot         */ old_prot,
+                                        /* reuse        */ false,
+                                        /* redzone_size */ 0);
+            mem_map_.insert(it, *right);
+        }
+        return middle;
+    }
+
     MemMap* MemMap::MapAnonymous(const char* name,
                                  uint8_t* addr,
                                  size_t byte_count,
@@ -125,25 +246,34 @@ namespace art {
                                  std::string* error_msg,
                                  bool use_ashmem)
     {
-        std::lock_guard<std::mutex> mu(*mem_maps_lock_);
         try
         {
+            std::lock_guard<std::mutex> mu(*mem_maps_lock_);
+            if (addr != nullptr && reuse) {
+                for (auto it = mem_map_.begin(); it != mem_map_.end(); it++) {
+                    if (it == mem_map_.end() || (*it).BaseBegin() > addr) {
+                        break;
+                    }
+                    if (addr >= (*it).BaseBegin() && addr <= (*it).BaseEnd()) {
+                        return (*it).Split(addr, byte_count, prot, name);
+                    }
+                }
+                if (error_msg) {
+                    *error_msg = "Region '" + std::string(name) + "' not found";
+                }
+                return nullptr;
+            }
             auto result = new MemMap (/* name         */ name,
                                       /* begin        */ addr,
                                       /* size         */ byte_count,
                                       /* base_begin   */ addr,
                                       /* base_size    */ byte_count,
                                       /* prot         */ prot | (low_4gb ? PROT_LOWMEM : 0),
-                                      /* reuse        */ reuse,
+                                      /* reuse        */ false,
                                       /* redzone_size */ 0);
-
-#ifdef __LP64__
-            assert (!low_4gb
-                   || (reinterpret_cast<unsigned long>(result->BaseBegin()) < (1UL << 32)
-                      && reinterpret_cast<unsigned long>(result->BaseEnd()) < (1UL << 32)),
-                    "low_4gb not honored");
-#endif
-
+            if (!Insert(result, name, error_msg)) {
+                return nullptr;
+            };
             return result;
         } catch (Error e)
         {
@@ -188,6 +318,7 @@ namespace art {
         }
         delete mem_maps_lock_;
         mem_maps_lock_ = nullptr;
+        mem_map_.clear();
     }
 
     void MemMap::DumpMaps(std::ostream& os, bool terse)
@@ -236,7 +367,7 @@ namespace art {
 
         if (new_base_size > ds_.size())
         {
-			Genode::error("Error increasing memmap size from ", ds_.size(), " to ", new_base_size);
+            Genode::error("Error increasing memmap size from ", ds_.size(), " to ", new_base_size);
             return;
         }
 
