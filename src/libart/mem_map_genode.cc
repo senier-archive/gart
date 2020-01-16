@@ -6,13 +6,14 @@
 
 // Android includes
 #include <android-base/stringprintf.h>
+#include "base/allocator.h"
 #include <base/bit_utils.h>
 #include <base/globals.h>
 
-// stdc++ includes
-#include <atomic>
-#include <list>
-#include <iostream>
+// libc/stdc++ includes
+#include <stdlib.h>
+#include <cinttypes>
+#include <sys/mman.h>
 
 // GART includes
 #include <gart/env.h>
@@ -20,27 +21,188 @@
 // local includes
 #include "mem_map.h"
 
-class Assertion_failed : Genode::Exception { };
-
 #define assert(invariant, message) if (!(invariant)) { Genode::error(message ": " #invariant); exit(1); }
-
-static std::atomic_size_t lowmem_base = 0x1000;
+#define NOT_IMPLEMENTED Genode::warning(__func__, " not implemented.");
 
 namespace art {
 
     std::mutex* MemMap::mem_maps_lock_ = nullptr;
-    static std::list<MemMap> mem_map_;
 
-    class Error
-    {
-        private:
-            const std::string &message_;
-        public:
-            Error(const std::string &message) : message_(message) { }
-            void message(std::string *m) { if (m != nullptr) { *m = message_; } }
-    };
+    using android::base::StringPrintf;
 
-    enum { PROT_READ = 1, PROT_WRITE = 2, PROT_EXEC = 4, PROT_LOWMEM = 8 };
+    template<class Key, class T, AllocatorTag kTag, class Compare = std::less<Key>>
+    using AllocationTrackingMultiMap =
+        std::multimap<Key, T, Compare, TrackingAllocator<std::pair<const Key, T>, kTag>>;
+
+    using Maps = AllocationTrackingMultiMap<void*, MemMap*, kAllocatorTagMaps>;
+    static Maps* gMaps GUARDED_BY(MemMap::GetMemMapsLock()) = nullptr;
+
+    bool GenodeFree(Genode::Ram_dataspace_capability *rdc,
+                    std::string *error_msg) {
+        if (rdc == nullptr) {
+            if (error_msg) {
+                *error_msg = "No dataspace allocated";
+            }
+            return false;
+        };
+
+        Genode::Env *env = &gart::genode_env();
+        env->ram().free(*rdc);
+    }
+
+    bool GenodeUnmap(void* addr,
+                     std::string *error_msg) {
+
+        Genode::Env *env = &gart::genode_env();
+        Genode::Region_map_client as(env->pd().address_space());
+
+        try {
+            as.detach(addr);
+        } catch (...) {
+            if (error_msg) {
+                *error_msg = StringPrintf ("Error unmapping address %llx", addr);
+            }
+            return false;
+        }
+        return true;
+    }
+
+    void* GenodeMap(Genode::Ram_dataspace_capability *rdc,
+                    void* addr,
+                    size_t length,
+                    bool read,
+                    bool write,
+                    bool exec,
+                    std::string *error_msg) {
+
+        Genode::Env *env = &gart::genode_env();
+
+        if (rdc == nullptr) {
+            if (error_msg) {
+                *error_msg = "Invalid RAM dataspace";
+            }
+            return nullptr;
+        }
+
+        Genode::Dataspace_client ds(*rdc);
+        Genode::Region_map_client as(env->pd().address_space());
+
+        void *result = nullptr;
+        try {
+            result = as.attach(/* ds             */ *rdc,
+                               /* size           */ 0,
+                               /* offset         */ 0,
+                               /* use_local_addr */ addr != nullptr,
+                               /* local_addr     */ addr,
+                               /* executable     */ exec,
+                               /* writable       */ write);
+        } catch (Genode::Region_map::Region_conflict) {
+            if (error_msg) {
+                *error_msg = "Region map conflict";
+            }
+        }
+        return result;
+    }
+
+    Genode::Ram_dataspace_capability *GenodeAlloc(size_t length,
+                                                   std::string *error_msg) {
+        Genode::Env *env = &gart::genode_env();
+        try {
+            return new Genode::Ram_dataspace_capability(env->ram().alloc(length));
+        } catch (...) {
+            if (error_msg) {
+                *error_msg = "Allocation error";
+            }
+            return nullptr;
+        }
+    }
+
+#ifdef __LP64__
+    void* GenodeMapLow(Genode::Ram_dataspace_capability *rdc,
+                       size_t length,
+                       bool read,
+                       bool write,
+                       bool exec,
+                       std::string *error_msg) {
+
+        size_t adjust = 0x1000;
+        for (size_t b = 0;
+             b < 0xfffff000;
+             b += adjust)
+        {
+            void *result = GenodeMap (/* rdc       */ rdc,
+                                         /* addr      */ reinterpret_cast<uint8_t *>(b),
+                                         /* length    */ length,
+                                         /* read      */ read,
+                                         /* write     */ write,
+                                         /* exec      */ exec,
+                                         /* error_msg */ error_msg);
+            if (result != nullptr) {
+                return result;
+            }
+            adjust *= 2;
+        }
+        return nullptr;
+    }
+#endif // __LP64__
+
+    void* GenodeMapInternal(Genode::Ram_dataspace_capability *rdc,
+                            void* addr,
+                            size_t length,
+                            bool read,
+                            bool write,
+                            bool exec,
+                            bool low_4gb,
+                            std::string *error_msg) {
+
+#ifdef __LP64__
+        if (low_4gb && addr == nullptr) {
+            return GenodeMapLow(/* rdc       */ rdc,
+                                /* length    */ length,
+                                /* read      */ read,
+                                /* write     */ write,
+                                /* exec      */ exec,
+                                /* error_msg */ error_msg);
+        }
+
+        if (reinterpret_cast<uint64_t>(addr) > 0xfffff000ULL) {
+            if (error_msg) {
+                *error_msg = "Non-lowmem fixed addres and low_4gb set";
+            }
+            return nullptr;
+        }
+#endif
+        return GenodeMap(/* rdc       */ rdc,
+                         /* addr      */ addr,
+                         /* length    */ length,
+                         /* read      */ read,
+                         /* write     */ write,
+                         /* exec      */ exec,
+                         /* error_msg */ error_msg);
+    }
+
+    bool MemMap::ContainedWithinExistingMap(uint8_t* ptr, size_t size, std::string* error_msg) {
+      uintptr_t begin = reinterpret_cast<uintptr_t>(ptr);
+      uintptr_t end = begin + size;
+
+      {
+        std::lock_guard<std::mutex> mu(*mem_maps_lock_);
+        for (auto& pair : *gMaps) {
+          MemMap* const map = pair.second;
+          if (begin >= reinterpret_cast<uintptr_t>(map->Begin()) &&
+              end <= reinterpret_cast<uintptr_t>(map->End())) {
+            return true;
+          }
+        }
+      }
+
+      if (error_msg != nullptr) {
+        *error_msg = StringPrintf("Requested region 0x%08" PRIx16 "-0x%08" PRIx16 " does not overlap "
+                                  "any existing map.", begin, end);
+      }
+      return false;
+    }
+
 
     MemMap::MemMap(const std::string& name,
                    uint8_t* begin,
@@ -49,202 +211,28 @@ namespace art {
                    size_t base_size,
                    int prot,
                    bool reuse,
+                   Genode::Ram_dataspace_capability *rdc,
                    size_t redzone_size) : name_(name)
-                                        , prot_(prot & (~PROT_LOWMEM))
+                                        , begin_(begin)
+                                        , size_(size)
+                                        , base_begin_(base_begin)
+                                        , base_size_(base_size)
+                                        , prot_(prot)
                                         , reuse_(reuse)
                                         , already_unmapped_(false)
                                         , redzone_size_(redzone_size)
-                                        , env_(gart::genode_env())
-                                        , ram_ds_cap_(env_.ram().alloc(size))
-                                        , ds_(ram_ds_cap_)
-                                        , address_space_(env_.pd().address_space())
+                                        , rdc_(rdc)
     {
-        //Genode::log(__func__, ": ", name.c_str(), " @ ", Genode::Hex(reinterpret_cast<unsigned long>(begin)), " size=", size, " write=", bool(prot & PROT_WRITE), " exec=", bool(prot & PROT_EXEC));
-        assert ((prot_ & ~0xfUL) == 0, "Unsupported protection bits");
-        assert (reuse == 0, "Reuse not implemented");
-        assert ((reinterpret_cast<unsigned long>(begin) & 0xfff) == 0, "Address not page-aligned")
-
-        bool lowmem =
-#ifdef __LP64__
-            (prot & PROT_LOWMEM) > 0;
-#else
-            false;
-#endif
-
-        if (!(prot_ & PROT_READ))
-        {
-            // Genode::warning("Non-accessible mapping unsupported, adding read permission");
-            prot_ |= PROT_READ;
-        }
-
-        size_ = size;
-        base_size_ = ds_.size();
-
-        int tries = 0;
-        bool done = false;
-        if (lowmem && begin == nullptr)
-        {
-            size_t adjust = 0x1000;
-            for (size_t b = lowmem_base; !done && b < (1UL << 32 - ds_.size()); b += adjust, tries += 1)
-            {
-                try {
-                    begin_ = address_space_.attach(ram_ds_cap_, 0, 0, true, reinterpret_cast<void *>(b), prot_ & PROT_EXEC, prot_ & PROT_WRITE);
-                    done = true;
-                } catch (Genode::Region_map::Region_conflict) { adjust *= 2; }
-            }
-            if (!done)
-            {
-                Genode::error("Error mapping low-mem");
-                throw Error("Error mapping low-mem");
-            }
-            size_t new_base = lowmem_base.load() + ds_.size();
-            lowmem_base.store(new_base);
-        } else
-        {
-            begin_= address_space_.attach(ram_ds_cap_, 0, 0, begin != nullptr, begin, prot_ & PROT_EXEC, prot_ & PROT_WRITE);
-        }
-
-        base_begin_ = (void *)begin_;
-
-        // Initialize memory
-        void *b = address_space_.attach(ram_ds_cap_, 0, 0, false, nullptr, false, true);
-        Genode::memset(b, 0, ds_.size());
-        address_space_.detach(b);
+        NOT_IMPLEMENTED;
     };
 
     MemMap::~MemMap()
     {
-    }
-
-    MemMap * MemMap::Detach() {
-        address_space_.detach(base_begin_);
-        env_.ram().free(ram_ds_cap_);
-    }
-
-    void Dump(std::string message) {
-        bool error = false;
-        uint8_t *last = 0;
-        fprintf(stderr, "   >>> MAP: %s\n", message.c_str());
-        for (auto it = mem_map_.begin(); it != mem_map_.end(); it++) {
-            if (it == mem_map_.end()) {
-                break;
-            }
-            if ((*it).BaseBegin() < last) {
-                fprintf(stderr, "      ERROR: Next entry not continuous!\n");
-                error = true;
-            }
-            int prot = (*it).GetProtect();
-            fprintf(stderr, "      %8.8llx %8.0llx %c%c - %s\n", (*it).BaseBegin(), (*it).BaseSize(), prot & PROT_WRITE ? 'w' : '_', prot & PROT_EXEC ? 'x' : '_', (*it).GetName().c_str());
-            last = reinterpret_cast<uint8_t *>((*it).BaseBegin()) + (*it).BaseSize();
-        }
-        fprintf(stderr, "   <<< MAP: %s\n", message.c_str());
-        if (error) {
-            abort();
-        }
-    }
-
-    bool Insert(MemMap* entry,
-                const char *name,
-                std::string* error_msg)
-    {
-        auto elem = mem_map_.begin();
-        while (elem != mem_map_.end()) {
-            if ((*elem).BaseBegin() > entry->BaseBegin()) {
-                auto next = std::next(elem, 1);
-                if (next != mem_map_.end() && entry->BaseEnd() >= (*next).BaseBegin()) {
-                    if (error_msg) {
-                        *error_msg = "Region '" + std::string(name) + "' overlaps '" + (*next).GetName() + "'";
-                    }
-                    return false;
-                }
-                break;
-            }
-            if ((*elem).BaseBegin() == entry->BaseBegin()
-                && (*elem).BaseSize() == entry->BaseSize()
-                && (*elem).GetProtect() == entry->GetProtect()) {
-                // Already inserted
-                return true;
-            }
-
-            if ((*elem).BaseBegin() == entry->BaseBegin()) {
-                if (error_msg) {
-                    *error_msg = "Conflicting region '" + std::string(name) + "' (" + (*elem).GetName() + ")";
-                }
-                return false;
-            }
-            elem++;
-        }
-        mem_map_.insert(elem, *entry);
-        return true;
-    };
-
-    MemMap * MemMap::Split(uint8_t *addr,
-                           size_t size,
-                           int prot,
-                           std::string name,
-                           std::string* error_msg)
-    {
-        auto it = mem_map_.begin();
-        while (it != mem_map_.end()) {
-            if (addr >= (*it).BaseBegin() && addr <= (*it).BaseEnd()) {
-                break;
-            }
-            it++;
-        }
-        if (it == mem_map_.end()) {
-            *error_msg = "Error splitting region '" + name + "': region not found";
-            return nullptr;
-        }
-
-        // detach
-        std::string  old_name(GetName());
-        uint8_t     *old_base_begin = reinterpret_cast<uint8_t *>(BaseBegin());
-        int          old_size       = BaseSize();
-        int          old_prot       = GetProtect();
-        Detach();
-
-        // left region
-        if (old_base_begin < addr) {
-            auto left = new MemMap (/* name         */ old_name,
-                                    /* begin        */ old_base_begin,
-                                    /* size         */ addr - old_base_begin,
-                                    /* base_begin   */ old_base_begin,
-                                    /* base_size    */ addr - old_base_begin,
-                                    /* prot         */ old_prot,
-                                    /* reuse        */ false,
-                                    /* redzone_size */ 0);
-            mem_map_.insert(it, *left);
-        }
-
-        // middle region
-        auto middle = new MemMap (/* name         */ name,
-                                     /* begin        */ addr,
-                                     /* size         */ size,
-                                     /* base_begin   */ addr,
-                                     /* base_size    */ size,
-                                     /* prot         */ prot,
-                                     /* reuse        */ false,
-                                     /* redzone_size */ 0);
-        mem_map_.insert(it, *middle);
-
-        // right region
-        if (old_base_begin + old_size >= middle->BaseEnd()) {
-            size_t s = old_base_begin + old_size - reinterpret_cast<uint8_t *>(middle->BaseEnd());
-            auto right = new MemMap (/* name         */ old_name,
-                                     /* begin        */ old_base_begin + old_size,
-                                     /* size         */ s,
-                                     /* base_begin   */ old_base_begin + old_size,
-                                     /* base_size    */ s,
-                                     /* prot         */ old_prot,
-                                     /* reuse        */ false,
-                                     /* redzone_size */ 0);
-            mem_map_.insert(it, *right);
-        }
-        return middle;
+        NOT_IMPLEMENTED;
     }
 
     MemMap* MemMap::MapAnonymous(const char* name,
-                                 uint8_t* addr,
+                                  uint8_t* expected_ptr,
                                  size_t byte_count,
                                  int prot,
                                  bool low_4gb,
@@ -252,44 +240,57 @@ namespace art {
                                  std::string* error_msg,
                                  bool use_ashmem)
     {
-        try
-        {
-            std::lock_guard<std::mutex> mu(*mem_maps_lock_);
-            if (addr != nullptr && reuse) {
-                for (auto it = mem_map_.begin(); it != mem_map_.end(); it++) {
-                    if (it == mem_map_.end() || (*it).BaseBegin() > addr) {
-                        break;
-                    }
-                    if (addr >= (*it).BaseBegin() && addr <= (*it).BaseEnd()) {
-                        return (*it).Split(addr, byte_count, prot, name, error_msg);
-                    }
-                }
+        Genode::Ram_dataspace_capability *rdc;
+        size_t page_aligned_byte_count = RoundUp(byte_count, kPageSize);
+
+        if (reuse) {
+            CHECK(expected_ptr != nullptr);
+            DCHECK(ContainedWithinExistingMap(expected_ptr, byte_count, error_msg)) << *error_msg;
+        }
+
+        rdc = GenodeAlloc(byte_count, error_msg);
+        if (rdc == nullptr) {
+            return nullptr;
+        }
+
+        bool read  = prot & PROT_READ;
+        bool write = prot & PROT_WRITE;
+        bool exec  = prot & PROT_EXEC;
+
+          void* actual = GenodeMapInternal(/* rdc       */ rdc,
+                                         /* addr      */ reinterpret_cast<void *>(expected_ptr),
+                                           /* length    */ page_aligned_byte_count,
+                                           /* read      */ read,
+                                           /* write     */ write,
+                                           /* exec      */ exec,
+                                           /* low_4gb   */ low_4gb,
+                                         /* error_msg */ error_msg);
+        if (actual == nullptr) {
+            return nullptr;
+        }
+
+        if (!read) {
+            if (write || exec) {
                 if (error_msg) {
-                    *error_msg = "Region '" + std::string(name) + "' not found";
+                    *error_msg = "Write/exec-only regions unsupported";
+                    Genode::warning(error_msg->c_str());
                 }
                 return nullptr;
             }
-            auto result = new MemMap (/* name         */ name,
-                                      /* begin        */ addr,
-                                      /* size         */ byte_count,
-                                      /* base_begin   */ addr,
-                                      /* base_size    */ byte_count,
-                                      /* prot         */ prot | (low_4gb ? PROT_LOWMEM : 0),
-                                      /* reuse        */ false,
-                                      /* redzone_size */ 0);
-            if (!Insert(result, name, error_msg)) {
+            // Unmap page
+            if (!GenodeUnmap(actual, error_msg)) {
                 return nullptr;
-            };
-            return result;
-        } catch (Error e)
-        {
-            e.message(error_msg);
-            return nullptr;
-        } catch (...)
-        {
-            *error_msg = "Unknown exception when mapping memory";
-            return nullptr;
+            }
         }
+
+        return new MemMap(name,
+                          reinterpret_cast<uint8_t*>(actual),
+                          byte_count,
+                          actual,
+                          page_aligned_byte_count,
+                          prot,
+                          reuse,
+                          rdc);
     }
 
     MemMap* MemMap::RemapAtEnd(uint8_t* new_end,
@@ -298,94 +299,58 @@ namespace art {
                                std::string* error_msg,
                                bool use_ashmem)
     {
-        Genode::warning(__PRETTY_FUNCTION__, ": not implemented");
+        NOT_IMPLEMENTED;
         return nullptr;
     }
 
     void MemMap::TryReadable()
     {
-        Genode::warning(__PRETTY_FUNCTION__, ": not implemented");
+        NOT_IMPLEMENTED;
     }
 
     void MemMap::Init()
     {
-        if (mem_maps_lock_ != nullptr)
-        {
+          if (mem_maps_lock_ != nullptr) {
             return;
-        }
-        mem_maps_lock_ = new std::mutex();
+          }
+          mem_maps_lock_ = new std::mutex();
+          DCHECK(gMaps == nullptr);
+          gMaps = new Maps;
     }
 
     void MemMap::Shutdown()
     {
-        if (mem_maps_lock_ == nullptr)
-        {
+          if (mem_maps_lock_ == nullptr) {
             return;
-        }
-        delete mem_maps_lock_;
-        mem_maps_lock_ = nullptr;
-        mem_map_.clear();
+          }
+          {
+            DCHECK(gMaps != nullptr);
+            delete gMaps;
+            gMaps = nullptr;
+          }
+          delete mem_maps_lock_;
+          mem_maps_lock_ = nullptr;
     }
 
     void MemMap::DumpMaps(std::ostream& os, bool terse)
     {
-        Genode::warning(__PRETTY_FUNCTION__, ": not implemented");
+        NOT_IMPLEMENTED;
     }
 
     MemMap* MemMap::MapDummy(const char* name, uint8_t* addr, size_t byte_count)
     {
-        Genode::warning(__PRETTY_FUNCTION__, ": not implemented");
+        NOT_IMPLEMENTED;
         return nullptr;
     }
 
     bool MemMap::Protect(int prot)
     {
-        std::lock_guard<std::mutex> mu(*mem_maps_lock_);
-        if (prot == prot_)
-        {
-            return true;
-        }
-
-        try
-        {
-            address_space_.detach(base_begin_);
-            base_begin_= address_space_.attach(ram_ds_cap_, 0, 0, true, base_begin_, prot_ & PROT_EXEC, prot_ & PROT_WRITE);
-        } catch (Error e)
-        {
-            Genode::error("Error changing protection from ", prot_, " to ", prot);
-            return false;
-        }
-        prot_ = prot;
-        return true;
+        NOT_IMPLEMENTED;
     }
-
-#define PointerDiff(a, b) (size_t)(reinterpret_cast<uintptr_t>(a) - reinterpret_cast<uintptr_t>(b))
 
     void MemMap::SetSize(size_t new_size)
     {
-        std::lock_guard<std::mutex> mu(*mem_maps_lock_);
-        size_t new_base_size = RoundUp(new_size + PointerDiff(begin_, base_begin_), kPageSize);
-        if (new_base_size == ds_.size())
-        {
-            size_ = new_size;
-            return;
-        }
-
-        if (new_base_size > ds_.size())
-        {
-            Genode::error("Error increasing memmap size from ", ds_.size(), " to ", new_base_size);
-            return;
-        }
-
-        address_space_.detach(Genode::Region_map::Local_addr(base_begin_));
-        Genode::Region_map::Local_addr result = address_space_.attach(/* ds */ ram_ds_cap_,
-                                                                      /* size */ new_base_size,
-                                                                      /* offset */ 0,
-                                                                      /* use_local_addr */ true,
-                                                                      /* local_addr */ begin_,
-                                                                      /* executable */ prot_ & PROT_EXEC,
-                                                                      /* writeable */ prot_ & PROT_WRITE);
-        size_ = new_size;
+        NOT_IMPLEMENTED;
     }
 
     MemMap* MemMap::MapFileAtAddress(uint8_t* addr,
@@ -399,76 +364,38 @@ namespace art {
                                      const char* filename,
                                      std::string* error_msg)
     {
-        MemMap *result;
-        result = MapAnonymous (/* name       */ filename,
-                               /* addr       */ addr,
-                               /* size       */ byte_count,
-                               /* prot       */ prot | PROT_WRITE | (low_4gb ? PROT_LOWMEM : 0),
-                               /* low_4gb    */ low_4gb,
-                               /* reuse      */ reuse,
-                               /* error_msg  */ error_msg,
-                               /* use_ashmem */ false);
-        if (result == nullptr)
-        {
-            return nullptr;
-        }
-
-        DCHECK(result->Size() >= byte_count);
-
-        off_t old_offset = lseek(fd, 0, SEEK_SET);
-        size_t offset = 0;
-
-        while (offset < byte_count)
-        {
-            ssize_t bytes = read(fd, result->Begin() + offset, byte_count - offset);
-            if (bytes < 0)
-            {
-                delete result;
-                *error_msg = strerror(errno);
-                return nullptr;
-            }
-
-            if (bytes == 0)
-            {
-                break;
-            }
-            DCHECK(offset <= byte_count - bytes);
-            offset += bytes;
-        }
-
-        lseek(fd, old_offset, SEEK_SET);
-        result->Protect(prot);
-        return result;
+        NOT_IMPLEMENTED;
+        return nullptr;
     }
 
     void MemMap::MadviseDontNeedAndZero()
     {
-        std::lock_guard<std::mutex> mu(*mem_maps_lock_);
-        if (base_begin_ == nullptr && ds_.size() == 0)
-        {
-            return;
-        }
-
-        if (prot_ & PROT_WRITE && !kMadviseZeroes)
-        {
-            Genode::memset(base_begin_, 0, ds_.size());
-        }
+        NOT_IMPLEMENTED;
     }
 
     void MemMap::AlignBy(size_t size)
     {
-        Genode::warning(__PRETTY_FUNCTION__, ": not implemented");
+        NOT_IMPLEMENTED;
     }
 
     bool MemMap::CheckNoGaps(MemMap* begin_map, MemMap* end_map)
     {
-        Genode::warning(__PRETTY_FUNCTION__, ": not implemented");
-        return false;
+        NOT_IMPLEMENTED;
     }
 
     void ZeroAndReleasePages(void* address, size_t length)
     {
-        Genode::warning(__PRETTY_FUNCTION__, ": not implemented");
+        NOT_IMPLEMENTED;
     }
 
+    void* MemMap::MapInternal(void* addr,
+                              size_t length,
+                              int prot,
+                              int flags,
+                              int fd,
+                              off_t offset,
+                              bool low_4gb) {
+        NOT_IMPLEMENTED;
+        return nullptr;
+    }
 }
