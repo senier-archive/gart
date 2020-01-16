@@ -30,6 +30,11 @@ namespace art {
 
     using android::base::StringPrintf;
 
+    template<typename A, typename B>
+    static ptrdiff_t PointerDiff(A* a, B* b) {
+      return static_cast<ptrdiff_t>(reinterpret_cast<intptr_t>(a) - reinterpret_cast<intptr_t>(b));
+    }
+
     template<class Key, class T, AllocatorTag kTag, class Compare = std::less<Key>>
     using AllocationTrackingMultiMap =
         std::multimap<Key, T, Compare, TrackingAllocator<std::pair<const Key, T>, kTag>>;
@@ -131,12 +136,12 @@ namespace art {
              b += adjust)
         {
             void *result = GenodeMap (/* rdc       */ rdc,
-                                         /* addr      */ reinterpret_cast<uint8_t *>(b),
-                                         /* length    */ length,
-                                         /* read      */ read,
-                                         /* write     */ write,
-                                         /* exec      */ exec,
-                                         /* error_msg */ error_msg);
+                                      /* addr      */ reinterpret_cast<uint8_t *>(b),
+                                      /* length    */ length,
+                                      /* read      */ read,
+                                      /* write     */ write,
+                                      /* exec      */ exec,
+                                      /* error_msg */ error_msg);
             if (result != nullptr) {
                 return result;
             }
@@ -223,12 +228,55 @@ namespace art {
                                         , redzone_size_(redzone_size)
                                         , rdc_(rdc)
     {
-        NOT_IMPLEMENTED;
+        if (size_ == 0) {
+            CHECK(begin_ == nullptr);
+            CHECK(base_begin_ == nullptr);
+            CHECK_EQ(base_size_, 0U);
+            return;
+        }
+
+        CHECK(begin_ != nullptr);
+        CHECK(base_begin_ != nullptr);
+        CHECK_NE(base_size_, 0U);
+
+        // Add it to gMaps.
+        std::lock_guard<std::mutex> mu(*mem_maps_lock_);
+        DCHECK(gMaps != nullptr);
+        gMaps->insert(std::make_pair(base_begin_, this));
     };
 
     MemMap::~MemMap()
     {
-        NOT_IMPLEMENTED;
+        if (base_begin_ == nullptr && base_size_ == 0) {
+            return;
+        }
+
+        std::string error_msg;
+        if (!reuse_) {
+            if (!already_unmapped_) {
+                if (!GenodeUnmap(base_begin_, &error_msg)) {
+                    PLOG(FATAL) << "Unmapping failed: " << error_msg;
+                }
+                Genode::Env *env = &gart::genode_env();
+                env->ram().free(*rdc_);
+            }
+        }
+
+        // Remove it from gMaps.
+        std::lock_guard<std::mutex> mu(*mem_maps_lock_);
+        bool found = false;
+        DCHECK(gMaps != nullptr);
+        for (auto it = gMaps->lower_bound(base_begin_), end = gMaps->end();
+             it != end && it->first == base_begin_;
+             ++it)
+        {
+            if (it->second == this) {
+                found = true;
+                gMaps->erase(it);
+                break;
+            }
+        }
+        CHECK(found) << ": MemMap not found";
     }
 
     MemMap* MemMap::MapAnonymous(const char* name,
@@ -258,13 +306,13 @@ namespace art {
         bool exec  = prot & PROT_EXEC;
 
           void* actual = GenodeMapInternal(/* rdc       */ rdc,
-                                         /* addr      */ reinterpret_cast<void *>(expected_ptr),
+                                           /* addr      */ reinterpret_cast<void *>(expected_ptr),
                                            /* length    */ page_aligned_byte_count,
                                            /* read      */ read,
                                            /* write     */ write,
                                            /* exec      */ exec,
                                            /* low_4gb   */ low_4gb,
-                                         /* error_msg */ error_msg);
+                                           /* error_msg */ error_msg);
         if (actual == nullptr) {
             return nullptr;
         }
@@ -345,12 +393,51 @@ namespace art {
 
     bool MemMap::Protect(int prot)
     {
-        NOT_IMPLEMENTED;
+        if (base_begin_ == nullptr && base_size_ == 0) {
+            prot_ = prot;
+            return true;
+        }
+
+        std::string tmp_error;
+        DCHECK(GenodeUnmap(base_begin_, &tmp_error)) << tmp_error;
+        void *new_address = GenodeMap(/* rdc       */ rdc_,
+                                      /* addr      */ base_begin_,
+                                      /* length    */ base_size_,
+                                      /* read      */ prot & PROT_READ,
+                                      /* write     */ prot & PROT_WRITE,
+                                      /* exec      */ prot & PROT_EXEC,
+                                      /* error_msg */ &tmp_error);
+        DCHECK(new_address != nullptr) << tmp_error;
+        DCHECK_EQ(base_begin_, new_address) << "remapping at wrong address";
+        prot_ = prot;
+        return true;
     }
 
     void MemMap::SetSize(size_t new_size)
     {
-        NOT_IMPLEMENTED;
+        CHECK_LE(new_size, size_);
+        size_t new_base_size = RoundUp(new_size + static_cast<size_t>(PointerDiff(Begin(), BaseBegin())),
+                                       kPageSize);
+        if (new_base_size == base_size_) {
+            size_ = new_size;
+            return;
+        }
+        CHECK_LT(new_base_size, base_size_);
+
+        std::string tmp_error;
+        CHECK_NE(GenodeUnmap(base_begin_, &tmp_error), 0) << tmp_error;
+        void *new_address = GenodeMap(/* rdc       */ rdc_,
+                                      /* addr      */ base_begin_,
+                                      /* length    */ new_base_size,
+                                      /* read      */ prot_ & PROT_READ,
+                                      /* write     */ prot_ & PROT_WRITE,
+                                      /* exec      */ prot_ & PROT_EXEC,
+                                      /* error_msg */ &tmp_error);
+        DCHECK(new_address != nullptr) << tmp_error;
+        DCHECK_EQ(base_begin_, new_address) << "remapping at wrong address";
+
+        base_size_ = new_base_size;
+        size_ = new_size;
     }
 
     MemMap* MemMap::MapFileAtAddress(uint8_t* addr,
@@ -370,7 +457,13 @@ namespace art {
 
     void MemMap::MadviseDontNeedAndZero()
     {
-        NOT_IMPLEMENTED;
+        if (base_begin_ == nullptr && base_size_ == 0) {
+            return;
+        }
+
+        if (!kMadviseZeroes) {
+            memset(base_begin_, 0, base_size_);
+        }
     }
 
     void MemMap::AlignBy(size_t size)
