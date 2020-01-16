@@ -12,6 +12,7 @@
 // stdc++ includes
 #include <atomic>
 #include <list>
+#include <iostream>
 
 // GART includes
 #include <gart/env.h>
@@ -113,30 +114,33 @@ namespace art {
 
     MemMap::~MemMap()
     {
+    }
+
+    MemMap * MemMap::Detach() {
         address_space_.detach(base_begin_);
         env_.ram().free(ram_ds_cap_);
     }
 
     void Dump(std::string message) {
-		bool error = false;
-		uint8_t *last = 0;
+        bool error = false;
+        uint8_t *last = 0;
         fprintf(stderr, "   >>> MAP: %s\n", message.c_str());
         for (auto it = mem_map_.begin(); it != mem_map_.end(); it++) {
             if (it == mem_map_.end()) {
                 break;
             }
-			if ((*it).BaseBegin() < last) {
-				fprintf(stderr, "      ERROR: Next entry not continuous!\n");
-				error = true;
-			}
-			int prot = (*it).GetProtect();
-			fprintf(stderr, "      %8.8llx %8.0llx %c%c - %s\n", (*it).BaseBegin(), (*it).BaseSize(), prot & PROT_WRITE ? 'w' : '_', prot & PROT_EXEC ? 'x' : '_', (*it).GetName().c_str());
-			last = reinterpret_cast<uint8_t *>((*it).BaseBegin()) + (*it).BaseSize();
+            if ((*it).BaseBegin() < last) {
+                fprintf(stderr, "      ERROR: Next entry not continuous!\n");
+                error = true;
+            }
+            int prot = (*it).GetProtect();
+            fprintf(stderr, "      %8.8llx %8.0llx %c%c - %s\n", (*it).BaseBegin(), (*it).BaseSize(), prot & PROT_WRITE ? 'w' : '_', prot & PROT_EXEC ? 'x' : '_', (*it).GetName().c_str());
+            last = reinterpret_cast<uint8_t *>((*it).BaseBegin()) + (*it).BaseSize();
         }
         fprintf(stderr, "   <<< MAP: %s\n", message.c_str());
-		if (error) {
-			abort();
-		}
+        if (error) {
+            abort();
+        }
     }
 
     bool Insert(MemMap* entry,
@@ -156,8 +160,8 @@ namespace art {
                 break;
             }
             if ((*elem).BaseBegin() == entry->BaseBegin()
-				&& (*elem).BaseSize() == entry->BaseSize()
-				&& (*elem).GetProtect() == entry->GetProtect()) {
+                && (*elem).BaseSize() == entry->BaseSize()
+                && (*elem).GetProtect() == entry->GetProtect()) {
                 // Already inserted
                 return true;
             }
@@ -177,16 +181,18 @@ namespace art {
     MemMap * MemMap::Split(uint8_t *addr,
                            size_t size,
                            int prot,
-                           std::string name)
+                           std::string name,
+                           std::string* error_msg)
     {
-		auto it = mem_map_.begin();
+        auto it = mem_map_.begin();
         while (it != mem_map_.end()) {
-            if (addr == (*it).BaseBegin() && addr + size == (*it).BaseEnd()) {
-				break;
+            if (addr >= (*it).BaseBegin() && addr <= (*it).BaseEnd()) {
+                break;
             }
-			it++;
+            it++;
         }
         if (it == mem_map_.end()) {
+            *error_msg = "Error splitting region '" + name + "': region not found";
             return nullptr;
         }
 
@@ -195,7 +201,7 @@ namespace art {
         uint8_t     *old_base_begin = reinterpret_cast<uint8_t *>(BaseBegin());
         int          old_size       = BaseSize();
         int          old_prot       = GetProtect();
-		delete this;
+        Detach();
 
         // left region
         if (old_base_begin < addr) {
@@ -225,13 +231,13 @@ namespace art {
         if (old_base_begin + old_size >= middle->BaseEnd()) {
             size_t s = old_base_begin + old_size - reinterpret_cast<uint8_t *>(middle->BaseEnd());
             auto right = new MemMap (/* name         */ old_name,
-                                        /* begin        */ old_base_begin + old_size,
-                                        /* size         */ s,
-                                        /* base_begin   */ old_base_begin + old_size,
-                                        /* base_size    */ s,
-                                        /* prot         */ old_prot,
-                                        /* reuse        */ false,
-                                        /* redzone_size */ 0);
+                                     /* begin        */ old_base_begin + old_size,
+                                     /* size         */ s,
+                                     /* base_begin   */ old_base_begin + old_size,
+                                     /* base_size    */ s,
+                                     /* prot         */ old_prot,
+                                     /* reuse        */ false,
+                                     /* redzone_size */ 0);
             mem_map_.insert(it, *right);
         }
         return middle;
@@ -255,7 +261,7 @@ namespace art {
                         break;
                     }
                     if (addr >= (*it).BaseBegin() && addr <= (*it).BaseEnd()) {
-                        return (*it).Split(addr, byte_count, prot, name);
+                        return (*it).Split(addr, byte_count, prot, name, error_msg);
                     }
                 }
                 if (error_msg) {
