@@ -481,8 +481,59 @@ namespace art {
                                      const char* filename,
                                      std::string* error_msg)
     {
-        NOT_IMPLEMENTED;
-        return nullptr;
+        CHECK_NE(0, prot);
+        if (byte_count == 0) {
+            return new MemMap(/* name       */ filename,
+                              /* begin      */ nullptr,
+                              /* size       */ 0,
+                              /* base_begin */ nullptr,
+                              /* base_size  */ 0,
+                              /* prot       */ prot,
+                              /* reuse      */ false,
+                              /* rdc        */ nullptr);
+        }
+
+        int page_offset = start % kPageSize;
+        off_t page_aligned_offset = start - page_offset;
+        size_t page_aligned_byte_count = RoundUp(byte_count + page_offset, kPageSize);
+        uint8_t* page_aligned_expected = (addr == nullptr) ? nullptr : (addr - page_offset);
+
+        MemMap* result = MapAnonymous(/* name         */ filename,
+                                      /* expected_ptr */ page_aligned_expected,
+                                      /* byte_count   */ page_aligned_byte_count,
+                                      /* prot         */ prot | PROT_WRITE,
+                                      /* low_4gb      */ low_4gb,
+                                      /* reuse        */ reuse,
+                                      /* error_msg    */ error_msg,
+                                      /* use_ashmem   */ false);
+        if (result == nullptr) {
+            return nullptr;
+        }
+
+        DCHECK(result->Size() >= byte_count);
+
+        off_t old_offset = lseek(fd, 0, SEEK_SET);
+        size_t offset = 0;
+
+        while (offset < byte_count)
+        {
+            ssize_t bytes = read(fd, result->Begin() + offset, byte_count - offset);
+            if (bytes < 0) {
+                delete result;
+                *error_msg = strerror(errno);
+                return nullptr;
+            }
+
+            if (bytes == 0) {
+                break;
+            }
+            DCHECK(offset <= byte_count - bytes);
+            offset += bytes;
+        }
+
+        lseek(fd, old_offset, SEEK_SET);
+        result->Protect(prot);
+        return result;
     }
 
     void MemMap::MadviseDontNeedAndZero()
