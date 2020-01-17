@@ -76,6 +76,7 @@ namespace art {
     void* GenodeMap(Genode::Ram_dataspace_capability *rdc,
                     void* addr,
                     size_t length,
+                    size_t offset,
                     bool read,
                     bool write,
                     bool exec,
@@ -96,8 +97,8 @@ namespace art {
         void *result = nullptr;
         try {
             result = as.attach(/* ds             */ *rdc,
-                               /* size           */ 0,
-                               /* offset         */ 0,
+                               /* size           */ length,
+                               /* offset         */ offset,
                                /* use_local_addr */ addr != nullptr,
                                /* local_addr     */ addr,
                                /* executable     */ exec,
@@ -108,7 +109,7 @@ namespace art {
             }
         } catch (Genode::Region_map::Invalid_dataspace) {
             if (error_msg) {
-                *error_msg = "Region map conflict";
+                *error_msg = "Invalid dataspace";
             }
         } catch (Genode::Out_of_ram) {
             if (error_msg) {
@@ -142,6 +143,7 @@ namespace art {
 #ifdef __LP64__
     void* GenodeMapLow(Genode::Ram_dataspace_capability *rdc,
                        size_t length,
+                       size_t offset,
                        bool read,
                        bool write,
                        bool exec,
@@ -156,6 +158,7 @@ namespace art {
             void *result = GenodeMap (/* rdc       */ rdc,
                                       /* addr      */ reinterpret_cast<uint8_t *>(b),
                                       /* length    */ length,
+                                      /* offset    */ offset,
                                       /* read      */ read,
                                       /* write     */ write,
                                       /* exec      */ exec,
@@ -172,6 +175,7 @@ namespace art {
     void* GenodeMapInternal(Genode::Ram_dataspace_capability *rdc,
                             void* addr,
                             size_t length,
+                            size_t offset,
                             bool read,
                             bool write,
                             bool exec,
@@ -183,6 +187,7 @@ namespace art {
         if (low_4gb && addr == nullptr) {
             return GenodeMapLow(/* rdc       */ rdc,
                                 /* length    */ length,
+                                /* offset    */ offset,
                                 /* read      */ read,
                                 /* write     */ write,
                                 /* exec      */ exec,
@@ -199,6 +204,7 @@ namespace art {
         return GenodeMap(/* rdc       */ rdc,
                          /* addr      */ addr,
                          /* length    */ length,
+                         /* offset    */ offset,
                          /* read      */ read,
                          /* write     */ write,
                          /* exec      */ exec,
@@ -299,7 +305,7 @@ namespace art {
     }
 
     MemMap* MemMap::MapAnonymous(const char* name,
-                                  uint8_t* expected_ptr,
+                                 uint8_t* expected_ptr,
                                  size_t byte_count,
                                  int prot,
                                  bool low_4gb,
@@ -338,6 +344,7 @@ namespace art {
         void* actual = GenodeMapInternal(/* rdc       */ rdc,
                                          /* addr      */ reinterpret_cast<void *>(expected_ptr),
                                          /* length    */ page_aligned_byte_count,
+                                         /* offset    */ 0,
                                          /* read      */ read,
                                          /* write     */ write,
                                          /* exec      */ exec,
@@ -377,8 +384,71 @@ namespace art {
                                std::string* error_msg,
                                bool use_ashmem)
     {
-        NOT_IMPLEMENTED;
-        return nullptr;
+        DCHECK_GE(new_end, Begin());
+        DCHECK_LE(new_end, End());
+        DCHECK_LE(begin_ + size_, reinterpret_cast<uint8_t*>(base_begin_) + base_size_);
+        DCHECK_ALIGNED(begin_, kPageSize);
+        DCHECK_ALIGNED(base_begin_, kPageSize);
+        DCHECK_ALIGNED(reinterpret_cast<uint8_t*>(base_begin_) + base_size_, kPageSize);
+        DCHECK_ALIGNED(new_end, kPageSize);
+
+        uint8_t* old_end = begin_ + size_;
+        uint8_t* old_base_end = reinterpret_cast<uint8_t*>(base_begin_) + base_size_;
+        uint8_t* new_base_end = new_end;
+
+        if (new_base_end == old_base_end) {
+            return new MemMap(/* name       */ tail_name,
+                              /* begin      */ nullptr,
+                              /* size       */ 0,
+                              /* base_begin */ nullptr,
+                              /* base_size  */ 0,
+                              /* prot       */ tail_prot,
+                              /* reuse      */ false,
+                              /* rdc        */ nullptr);
+        }
+
+        size_ = new_end - reinterpret_cast<uint8_t*>(begin_);
+        base_size_ = new_base_end - reinterpret_cast<uint8_t*>(base_begin_);
+        DCHECK_LE(begin_ + size_, reinterpret_cast<uint8_t*>(base_begin_) + base_size_);
+        size_t tail_size = old_end - new_end;
+        uint8_t* tail_base_begin = new_base_end;
+        size_t tail_base_size = old_base_end - new_base_end;
+        DCHECK_EQ(tail_base_begin + tail_base_size, old_base_end);
+        DCHECK_ALIGNED(tail_base_size, kPageSize);
+
+        if (!GenodeUnmap(base_begin_, error_msg)) {
+            return nullptr;
+        }
+
+        void *new_address = GenodeMap(/* rdc       */ rdc_,
+                                      /* addr      */ base_begin_,
+                                      /* length    */ base_size_,
+                                      /* offset    */ 0,
+                                      /* read      */ prot_ & PROT_READ,
+                                      /* write     */ prot_ & PROT_WRITE,
+                                      /* exec      */ prot_ & PROT_EXEC,
+                                      /* error_msg */ error_msg);
+        DCHECK(new_address != nullptr) << (error_msg == nullptr) ? "" : *error_msg;
+        DCHECK_EQ(base_begin_, new_address);
+
+        new_address = GenodeMap(/* rdc       */ rdc_,
+                                /* addr      */ tail_base_begin,
+                                /* length    */ tail_base_size,
+                                /* offset    */ base_size_,
+                                /* read      */ tail_prot & PROT_READ,
+                                /* write     */ tail_prot & PROT_WRITE,
+                                /* exec      */ tail_prot & PROT_EXEC,
+                                /* error_msg */ error_msg);
+        DCHECK(new_address != nullptr) << (error_msg == nullptr) ? "" : *error_msg;
+
+        return new MemMap(/* name       */ tail_name,
+                          /* begin      */ reinterpret_cast<uint8_t *>(new_address),
+                          /* size       */ tail_base_size,
+                          /* base_begin */ new_address,
+                          /* base_size  */ tail_base_size,
+                          /* prot       */ tail_prot,
+                          /* reuse      */ false,
+                          /* rdc        */ rdc_);
     }
 
     void MemMap::TryReadable()
@@ -433,6 +503,7 @@ namespace art {
         void *new_address = GenodeMap(/* rdc       */ rdc_,
                                       /* addr      */ base_begin_,
                                       /* length    */ base_size_,
+                                      /* offset    */ 0,
                                       /* read      */ prot & PROT_READ,
                                       /* write     */ prot & PROT_WRITE,
                                       /* exec      */ prot & PROT_EXEC,
@@ -459,6 +530,7 @@ namespace art {
         void *new_address = GenodeMap(/* rdc       */ rdc_,
                                       /* addr      */ base_begin_,
                                       /* length    */ new_base_size,
+                                      /* offset    */ 0,
                                       /* read      */ prot_ & PROT_READ,
                                       /* write     */ prot_ & PROT_WRITE,
                                       /* exec      */ prot_ & PROT_EXEC,
