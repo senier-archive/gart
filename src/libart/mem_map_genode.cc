@@ -7,6 +7,7 @@
 // Android includes
 #include <android-base/stringprintf.h>
 #include "base/allocator.h"
+#include "base/logging.h"
 #include <base/bit_utils.h>
 #include <base/globals.h>
 
@@ -105,12 +106,28 @@ namespace art {
             if (error_msg) {
                 *error_msg = "Region map conflict";
             }
+        } catch (Genode::Region_map::Invalid_dataspace) {
+            if (error_msg) {
+                *error_msg = "Region map conflict";
+            }
+        } catch (Genode::Out_of_ram) {
+            if (error_msg) {
+                *error_msg = "Out of RAM";
+            }
+        } catch (Genode::Out_of_caps) {
+            if (error_msg) {
+                *error_msg = "Out of capabilities";
+            }
+        } catch (...) {
+            if (error_msg) {
+                *error_msg = "Unexpected exception";
+            }
         }
         return result;
     }
 
     Genode::Ram_dataspace_capability *GenodeAlloc(size_t length,
-                                                   std::string *error_msg) {
+                                                  std::string *error_msg) {
         Genode::Env *env = &gart::genode_env();
         try {
             return new Genode::Ram_dataspace_capability(env->ram().alloc(length));
@@ -129,6 +146,7 @@ namespace art {
                        bool write,
                        bool exec,
                        std::string *error_msg) {
+        assert(length > 0, "GenodeMapLow called with zero length");
 
         size_t adjust = 0x1000;
         for (size_t b = 0;
@@ -159,6 +177,7 @@ namespace art {
                             bool exec,
                             bool low_4gb,
                             std::string *error_msg) {
+        assert(length > 0, "GenodeMapInternal called with zero length");
 
 #ifdef __LP64__
         if (low_4gb && addr == nullptr) {
@@ -291,6 +310,17 @@ namespace art {
         Genode::Ram_dataspace_capability *rdc;
         size_t page_aligned_byte_count = RoundUp(byte_count, kPageSize);
 
+        if (byte_count == 0) {
+            return new MemMap(/* name       */ name,
+                              /* begin      */ nullptr,
+                              /* size       */ 0,
+                              /* base_begin */ nullptr,
+                              /* base_size  */ 0,
+                              /* prot       */ prot,
+                              /* reuse      */ false,
+                              /* rdc        */ nullptr);
+        }
+
         if (reuse) {
             CHECK(expected_ptr != nullptr);
             DCHECK(ContainedWithinExistingMap(expected_ptr, byte_count, error_msg)) << *error_msg;
@@ -305,14 +335,14 @@ namespace art {
         bool write = prot & PROT_WRITE;
         bool exec  = prot & PROT_EXEC;
 
-          void* actual = GenodeMapInternal(/* rdc       */ rdc,
-                                           /* addr      */ reinterpret_cast<void *>(expected_ptr),
-                                           /* length    */ page_aligned_byte_count,
-                                           /* read      */ read,
-                                           /* write     */ write,
-                                           /* exec      */ exec,
-                                           /* low_4gb   */ low_4gb,
-                                           /* error_msg */ error_msg);
+        void* actual = GenodeMapInternal(/* rdc       */ rdc,
+                                         /* addr      */ reinterpret_cast<void *>(expected_ptr),
+                                         /* length    */ page_aligned_byte_count,
+                                         /* read      */ read,
+                                         /* write     */ write,
+                                         /* exec      */ exec,
+                                         /* low_4gb   */ low_4gb,
+                                         /* error_msg */ error_msg);
         if (actual == nullptr) {
             return nullptr;
         }
@@ -331,14 +361,14 @@ namespace art {
             }
         }
 
-        return new MemMap(name,
-                          reinterpret_cast<uint8_t*>(actual),
-                          byte_count,
-                          actual,
-                          page_aligned_byte_count,
-                          prot,
-                          reuse,
-                          rdc);
+        return new MemMap(/* name       */ name,
+                          /* begin      */ reinterpret_cast<uint8_t*>(actual),
+                          /* size       */ byte_count,
+                          /* base_begin */ actual,
+                          /* base_size  */ page_aligned_byte_count,
+                          /* prot       */ prot,
+                          /* reuse      */ reuse,
+                          /* rdc        */ rdc);
     }
 
     MemMap* MemMap::RemapAtEnd(uint8_t* new_end,
