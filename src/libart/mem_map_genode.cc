@@ -374,6 +374,13 @@ namespace art {
         VLOG(heap) << __FUNCTION__ << " @" << (void *)expected_ptr << " size=" << byte_count << " prot=" << prot << " [" << name << "]";
         size_t page_aligned_byte_count = RoundUp(byte_count, kPageSize);
 
+        if (low_4gb && reinterpret_cast<uint8_t *>(0xffffffff) - expected_ptr <= byte_count) {
+            if (error_msg) {
+                *error_msg = StringPrintf ("Region at %llx, with size %llu does not fit below 4GB", expected_ptr, byte_count);
+            }
+            return nullptr;
+        }
+
         if (byte_count == 0) {
             return new MemMap(/* name       */ name,
                               /* begin      */ nullptr,
@@ -684,6 +691,7 @@ namespace art {
     bool MemMap::CheckNoGaps(MemMap* begin_map, MemMap* end_map)
     {
         NOT_IMPLEMENTED;
+        return false;
     }
 
     void ZeroAndReleasePages(void* address, size_t length)
