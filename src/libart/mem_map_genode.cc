@@ -234,7 +234,8 @@ namespace art {
                                    /* error_msg */ error_msg);
             }
 
-            bool Remap(size_t length,
+            bool Remap(void *addr,
+                       size_t length,
                        size_t offset,
                        bool read,
                        bool write,
@@ -243,11 +244,11 @@ namespace art {
 
                 std::lock_guard<std::mutex> mu(lock_->lock);
 
-                void *old_addr = addr_;
+                void *tmp_addr = addr == nullptr ? addr_ : addr;
                 if (!Unmap(error_msg)) {
                     return false;
                 }
-                bool success = Map(/* addr      */ old_addr,
+                bool success = Map(/* addr      */ tmp_addr,
                                    /* length    */ length,
                                    /* offset    */ offset,
                                    /* read      */ read,
@@ -256,7 +257,7 @@ namespace art {
                                    /* low_4gb   */ false,
                                    /* error_msg */ error_msg);
                 DCHECK(success) << error_msg;
-                DCHECK_EQ(Addr(), old_addr) << "remapping at wrong address";
+                DCHECK_EQ(Addr(), tmp_addr) << "remapping at wrong address";
                 return true;
             }
     };
@@ -610,7 +611,8 @@ namespace art {
         }
 
         std::string tmp_error;
-        bool success = memory_->Remap (/* length    */ base_size_,
+        bool success = memory_->Remap (/* addr      */ nullptr,
+                                       /* length    */ base_size_,
                                        /* offset    */ 0, // FIXME: maintain offset!
                                        /* read      */ prot_ & PROT_READ,
                                        /* write     */ prot_ & PROT_WRITE,
@@ -633,7 +635,8 @@ namespace art {
         CHECK_LT(new_base_size, base_size_);
 
         std::string tmp_error;
-        bool success = memory_->Remap (/* length    */ new_base_size,
+        bool success = memory_->Remap (/* addr      */ nullptr,
+                                       /* length    */ new_base_size,
                                        /* offset    */ 0, // FIXME: maintain offset!
                                        /* read      */ prot_ & PROT_READ,
                                        /* write     */ prot_ & PROT_WRITE,
@@ -724,7 +727,49 @@ namespace art {
 
     void MemMap::AlignBy(size_t size)
     {
-        NOT_IMPLEMENTED;
+        CHECK_GT(size, static_cast<size_t>(kPageSize));
+        CHECK_ALIGNED(size, kPageSize);
+        if (IsAlignedParam(reinterpret_cast<uintptr_t>(base_begin_), size) && IsAlignedParam(base_size_, size)) {
+            // Already aligned.
+            return;
+        }
+        uint8_t* base_begin = reinterpret_cast<uint8_t*>(base_begin_);
+        uint8_t* base_end = base_begin + base_size_;
+        uint8_t* aligned_base_begin = AlignUp(base_begin, size);
+        uint8_t* aligned_base_end = AlignDown(base_end, size);
+        CHECK_LE(base_begin, aligned_base_begin);
+        CHECK_LE(aligned_base_end, base_end);
+        size_t aligned_base_size = aligned_base_end - aligned_base_begin;
+        CHECK_LT(aligned_base_begin, aligned_base_end)
+            << "base_begin = " << reinterpret_cast<void*>(base_begin)
+            << " base_end = " << reinterpret_cast<void*>(base_end);
+        CHECK_GE(aligned_base_size, size);
+
+        std::string error_msg;
+
+        std::lock_guard<std::mutex> mu(*mem_maps_lock_);
+        base_begin_ = aligned_base_begin;
+        base_size_ = aligned_base_size;
+        begin_ = aligned_base_begin;
+        size_ = aligned_base_size;
+
+        std::string tmp_error;
+        bool success = memory_->Remap (/* addr      */ base_begin_,
+                                       /* length    */ base_size_,
+                                       /* offset    */ 0, // FIXME: maintain offset!
+                                       /* read      */ prot_ & PROT_READ,
+                                       /* write     */ prot_ & PROT_WRITE,
+                                       /* exec      */ prot_ & PROT_EXEC,
+                                       /* error_msg */ &tmp_error);
+
+        DCHECK(success) << tmp_error;
+        DCHECK(gMaps != nullptr);
+        if (base_begin < aligned_base_begin) {
+          auto it = gMaps->find(base_begin);
+          CHECK(it != gMaps->end()) << "MemMap not found";
+          gMaps->erase(it);
+          gMaps->insert(std::make_pair(base_begin_, this));
+        }
     }
 
     bool MemMap::CheckNoGaps(MemMap* begin_map, MemMap* end_map)
