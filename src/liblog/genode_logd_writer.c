@@ -48,9 +48,11 @@ static char *idstr(log_id_t logId) {
 }
 
 static int genodeWrite(log_id_t logId, struct timespec* ts, struct iovec* vec, size_t nr) {
+#if 0
    char buffer[1024];
    fprintf(stderr, "%lld.%.9ld [%s]: ", (long long)ts->tv_sec, ts->tv_nsec, idstr(logId));
    writev(2, vec, nr);
    fprintf(stderr, "\n");
+#endif
    return nr;
 }
