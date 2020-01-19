@@ -275,6 +275,35 @@ namespace art {
     using Maps = AllocationTrackingMultiMap<void*, MemMap*, kAllocatorTagMaps>;
     static Maps* gMaps GUARDED_BY(MemMap::GetMemMapsLock()) = nullptr;
 
+    bool MemMap::HasMemMap(MemMap* map) {
+        void* base_begin = map->BaseBegin();
+        for (auto it = gMaps->lower_bound(base_begin), end = gMaps->end();
+             it != end && it->first == base_begin;
+             ++it)
+        {
+            if (it->second == map) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    MemMap* MemMap::GetLargestMemMapAt(void* address) {
+        size_t largest_size = 0;
+        MemMap* largest_map = nullptr;
+        DCHECK(gMaps != nullptr);
+        for (auto it = gMaps->lower_bound(address), end = gMaps->end();
+             it != end && it->first == address; ++it) {
+            MemMap* map = it->second;
+            CHECK(map != nullptr);
+            if (largest_size < map->BaseSize()) {
+                largest_size = map->BaseSize();
+                largest_map = map;
+            }
+        }
+        return largest_map;
+    }
+
     bool MemMap::ContainedWithinExistingMap(uint8_t* ptr, size_t size, std::string* error_msg) {
       uintptr_t begin = reinterpret_cast<uintptr_t>(ptr);
       uintptr_t end = begin + size;
@@ -700,8 +729,22 @@ namespace art {
 
     bool MemMap::CheckNoGaps(MemMap* begin_map, MemMap* end_map)
     {
-        NOT_IMPLEMENTED;
-        return false;
+        std::lock_guard<std::mutex> mu(*mem_maps_lock_);
+        CHECK(begin_map != nullptr);
+        CHECK(end_map != nullptr);
+        CHECK(HasMemMap(begin_map));
+        CHECK(HasMemMap(end_map));
+        CHECK_LE(begin_map->BaseBegin(), end_map->BaseBegin());
+        MemMap* map = begin_map;
+        while (map->BaseBegin() != end_map->BaseBegin()) {
+          MemMap* next_map = GetLargestMemMapAt(map->BaseEnd());
+          if (next_map == nullptr) {
+            // Found a gap.
+            return false;
+          }
+          map = next_map;
+        }
+        return true;
     }
 
     void ZeroAndReleasePages(void* address, size_t length)
