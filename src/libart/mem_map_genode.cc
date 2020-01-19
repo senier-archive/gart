@@ -394,7 +394,17 @@ namespace art {
 
         if (reuse) {
             CHECK(expected_ptr != nullptr);
-            DCHECK(ContainedWithinExistingMap(expected_ptr, byte_count, error_msg)) << *error_msg;
+            if (!ContainedWithinExistingMap(expected_ptr, byte_count, error_msg)) {
+                return nullptr;
+            }
+            return new MemMap(/* name       */ name,
+                              /* begin      */ expected_ptr,
+                              /* size       */ byte_count,
+                              /* base_begin */ expected_ptr,
+                              /* base_size  */ page_aligned_byte_count,
+                              /* prot       */ prot,
+                              /* reuse      */ reuse,
+                              /* memory     */ nullptr);
         }
 
         DataSpace *memory = new DataSpace();
