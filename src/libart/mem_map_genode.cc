@@ -125,9 +125,11 @@ namespace art {
         public:
 
             DataSpace() : env_(&gart::genode_env())
+                        , addr_(nullptr)
                         , lock_(nullptr) { }
 
             DataSpace(DataSpace *memory) : env_(memory->env_)
+                                         , addr_(nullptr)
                                          , lock_(memory->lock_) {
 
                 std::lock_guard<std::mutex> mu(lock_->lock);
@@ -244,6 +246,7 @@ namespace art {
 
                 std::lock_guard<std::mutex> mu(lock_->lock);
 
+                DCHECK(addr != nullptr || addr_ != nullptr) << "Region not mapped and no remapping address";
                 void *tmp_addr = addr == nullptr ? addr_ : addr;
                 if (!Unmap(error_msg)) {
                     return false;
@@ -256,7 +259,7 @@ namespace art {
                                    /* exec      */ exec,
                                    /* low_4gb   */ false,
                                    /* error_msg */ error_msg);
-                DCHECK(success) << error_msg;
+                DCHECK(success) << *error_msg;
                 DCHECK_EQ(Addr(), tmp_addr) << "remapping at wrong address";
                 return true;
             }
@@ -305,26 +308,91 @@ namespace art {
         return largest_map;
     }
 
-    bool MemMap::ContainedWithinExistingMap(uint8_t* ptr, size_t size, std::string* error_msg) {
-      uintptr_t begin = reinterpret_cast<uintptr_t>(ptr);
-      uintptr_t end = begin + size;
+    MemMap *MemMap::SplitExisting(const std::string& name,
+                                  uint8_t* ptr,
+                                  size_t size,
+                                  int prot,
+                                  std::string* error_msg) {
 
-      {
-        std::lock_guard<std::mutex> mu(*mem_maps_lock_);
-        for (auto& pair : *gMaps) {
-          MemMap* const map = pair.second;
-          if (begin >= reinterpret_cast<uintptr_t>(map->Begin()) &&
-              end <= reinterpret_cast<uintptr_t>(map->End())) {
-            return true;
-          }
+        DCHECK_ALIGNED(ptr, kPageSize);
+        DCHECK_ALIGNED(size, kPageSize);
+        uintptr_t begin = reinterpret_cast<uintptr_t>(ptr);
+        uintptr_t end = begin + size;
+
+        MemMap* old_map = nullptr;
+
+        {
+            std::lock_guard<std::mutex> mu(*mem_maps_lock_);
+            for (auto it = gMaps->begin();
+                 it != gMaps->end();
+                 ++it)
+            {
+                if (begin >= reinterpret_cast<uintptr_t>(it->second->Begin())
+                    && end <= reinterpret_cast<uintptr_t>(it->second->End()))
+                {
+                    gMaps->erase(it);
+                    old_map = it->second;
+                    old_map->already_unmapped_ = true;
+                    break;
+                }
+            }
         }
-      }
 
-      if (error_msg != nullptr) {
-        *error_msg = StringPrintf("Requested region 0x%08" PRIx16 "-0x%08" PRIx16 " does not overlap "
-                                  "any existing map.", begin, end);
-      }
-      return false;
+        if (old_map == nullptr) {
+            if (error_msg != nullptr) {
+              *error_msg = StringPrintf("Requested region 0x%08" PRIx16 "-0x%08" PRIx16 " does not overlap "
+                                        "any existing map.", begin, end);
+            }
+            return nullptr;
+        }
+
+        if (!old_map->memory_->Unmap(error_msg)) {
+            return nullptr;
+        };
+
+        // Left overlapping region
+        uintptr_t lsize = begin - reinterpret_cast<uintptr_t>(old_map->Begin());
+        if (lsize > 0) {
+            MemMap *left = new MemMap(/* name       */ old_map->GetName() + " (lsplit)",
+                                      /* begin      */ old_map->Begin(),
+                                      /* size       */ lsize,
+                                      /* base_begin */ old_map->Begin(),
+                                      /* base_size  */ lsize,
+                                      /* prot       */ old_map->GetProtect(),
+                                      /* reuse      */ false,
+                                      /* memory     */ new DataSpace(old_map->memory_));
+            DCHECK(left != nullptr);
+            left->Map();
+        }
+
+        // Actual region
+        MemMap *map = new MemMap(/* name       */ name,
+                                 /* begin      */ reinterpret_cast<uint8_t *>(begin),
+                                 /* size       */ size,
+                                 /* base_begin */ reinterpret_cast<void *>(begin),
+                                 /* base_size  */ size,
+                                 /* prot       */ prot,
+                                 /* reuse      */ false,
+                                 /* memory     */ new DataSpace(old_map->memory_));
+        DCHECK(map != nullptr);
+        map->Map();
+
+        // Right overlapping region
+        uintptr_t rsize = reinterpret_cast<uintptr_t>(old_map->End()) - end;
+        if (rsize > 0) {
+            MemMap *right = new MemMap(/* name       */ old_map->GetName() + " (split/r)",
+                                       /* begin      */ reinterpret_cast<uint8_t *>(end),
+                                       /* size       */ rsize,
+                                       /* base_begin */ reinterpret_cast<void *>(end),
+                                       /* base_size  */ rsize,
+                                       /* prot       */ old_map->GetProtect(),
+                                       /* reuse      */ false,
+                                       /* memory     */ new DataSpace(old_map->memory_));
+            DCHECK(right != nullptr);
+            right->Map();
+        }
+
+        return map;
     }
 
     MemMap::MemMap(const std::string& name,
@@ -375,6 +443,10 @@ namespace art {
             }
         }
 
+        if (already_unmapped_) {
+            return;
+        }
+
         // Remove it from gMaps.
         std::lock_guard<std::mutex> mu(*mem_maps_lock_);
         bool found = false;
@@ -405,7 +477,7 @@ namespace art {
         size_t page_aligned_byte_count = RoundUp(byte_count, kPageSize);
 
         if (low_4gb && reinterpret_cast<uint8_t *>(0xffffffff) - expected_ptr <= byte_count) {
-            if (error_msg) {
+            if (error_msg != nullptr) {
                 *error_msg = StringPrintf ("Region at %llx, with size %llu does not fit below 4GB", expected_ptr, byte_count);
             }
             return nullptr;
@@ -422,23 +494,19 @@ namespace art {
                               /* memory     */ nullptr);
         }
 
+
         if (reuse) {
             CHECK(expected_ptr != nullptr);
-            if (!ContainedWithinExistingMap(expected_ptr, byte_count, error_msg)) {
-                return nullptr;
-            }
-            return new MemMap(/* name       */ name,
-                              /* begin      */ expected_ptr,
-                              /* size       */ byte_count,
-                              /* base_begin */ expected_ptr,
-                              /* base_size  */ page_aligned_byte_count,
-                              /* prot       */ prot,
-                              /* reuse      */ reuse,
-                              /* memory     */ nullptr);
+            return SplitExisting(/* name      */ name,
+                                 /* ptr       */ expected_ptr,
+                                 /* size      */ page_aligned_byte_count,
+                                 /* prot      */ prot,
+                                 /* error_msg */ error_msg);
         }
 
         DataSpace *memory = new DataSpace();
         DCHECK(memory != nullptr);
+
         if (!memory->Alloc(byte_count, error_msg)) {
             return nullptr;
         }
@@ -646,6 +714,20 @@ namespace art {
 
         base_size_ = new_base_size;
         size_ = new_size;
+    }
+
+    bool MemMap::Map()
+    {
+        std::string tmp_error;
+        bool success = memory_->Remap (/* addr      */ base_begin_,
+                                       /* length    */ base_size_,
+                                       /* offset    */ 0, // FIXME: maintain offset!
+                                       /* read      */ prot_ & PROT_READ,
+                                       /* write     */ prot_ & PROT_WRITE,
+                                       /* exec      */ prot_ & PROT_EXEC,
+                                       /* error_msg */ &tmp_error);
+        DCHECK(success) << tmp_error;
+        return true;
     }
 
     MemMap* MemMap::MapFileAtAddress(uint8_t* addr,
