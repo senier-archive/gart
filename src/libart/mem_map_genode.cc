@@ -28,12 +28,22 @@ namespace art {
 
     using android::base::StringPrintf;
 
+    class Lock {
+        public:
+            Genode::Ram_dataspace_capability *rdc;
+            uint32_t count;
+            std::mutex lock;
+
+            Lock (Genode::Ram_dataspace_capability *rdc) : rdc(rdc)
+                                                         , count(1) { };
+    };
+
     class DataSpace {
 
         private:
             Genode::Env *env_;
-            Genode::Ram_dataspace_capability *rdc_;
             void *addr_;
+            Lock *lock_;
 
             bool MapInternal(void* addr,
                              size_t length,
@@ -43,13 +53,13 @@ namespace art {
                              bool exec,
                              std::string *error_msg) {
                 DCHECK(env_ != nullptr);
-                DCHECK(rdc_ != nullptr);
+                DCHECK(lock_->rdc != nullptr);
 
-                Genode::Dataspace_client ds(*rdc_);
+                Genode::Dataspace_client ds(*(lock_->rdc));
                 Genode::Region_map_client as(env_->pd().address_space());
 
                 try {
-                    addr_ = as.attach(/* ds             */ *rdc_,
+                    addr_ = as.attach(/* ds             */ *(lock_->rdc),
                                       /* size           */ length,
                                       /* offset         */ offset,
                                       /* use_local_addr */ addr != nullptr,
@@ -115,13 +125,30 @@ namespace art {
         public:
 
             DataSpace() : env_(&gart::genode_env())
-                        , rdc_(nullptr)
-                        { }
+                        , lock_(nullptr) { }
+
+            DataSpace(DataSpace *memory) : env_(memory->env_)
+                                         , lock_(memory->lock_) {
+
+                std::lock_guard<std::mutex> mu(lock_->lock);
+                lock_->count++;
+            }
 
             ~DataSpace() {
                 std::string error_msg;
                 DCHECK(Unmap(&error_msg)) << error_msg;
+
+                DCHECK(lock_ != nullptr);
+                std::lock_guard<std::mutex> mu(lock_->lock);
+
+                if (lock_->count > 1) {
+                    lock_->count--;
+                    return;
+                }
+
                 Free();
+                delete lock_;
+                lock_ = nullptr;
             }
 
             void *Addr() { return addr_; }
@@ -129,9 +156,9 @@ namespace art {
 
             void Free() {
                 DCHECK(env_ != nullptr);
-                DCHECK(rdc_ != nullptr);
-                env_->ram().free(*rdc_);
-                rdc_ = nullptr;
+                DCHECK(lock_ != nullptr);
+                env_->ram().free(*(lock_->rdc));
+                lock_->rdc = nullptr;
             }
 
             bool Unmap(std::string *error_msg) {
@@ -158,14 +185,16 @@ namespace art {
                        std::string *error_msg) {
                 DCHECK(env_ != nullptr);
 
+                Genode::Ram_dataspace_capability *rdc;
                 try {
-                    rdc_ = new Genode::Ram_dataspace_capability(env_->ram().alloc(length));
+                    rdc = new Genode::Ram_dataspace_capability(env_->ram().alloc(length));
                 } catch (...) {
                     if (error_msg != nullptr) {
                         *error_msg = "Allocation error";
                     }
                     return false;
                 }
+                lock_ = new Lock(rdc);
                 return true;
             }
 
@@ -179,7 +208,6 @@ namespace art {
                      std::string *error_msg) {
 
                 DCHECK(length > 0) << "Map called with zero length";
-
 #ifdef __LP64__
                 if (low_4gb && addr == nullptr) {
                     return MapLow(/* length    */ length,
@@ -213,8 +241,9 @@ namespace art {
                        bool exec,
                        std::string *error_msg) {
 
+                std::lock_guard<std::mutex> mu(lock_->lock);
+
                 void *old_addr = addr_;
-                // FIXME: Take lock between Unmap/Map!
                 if (!Unmap(error_msg)) {
                     return false;
                 }
@@ -405,7 +434,6 @@ namespace art {
                 return nullptr;
             }
             // Unmap region
-            VLOG(heap) << __FUNCTION__ << ": unmapping non-readable page";
             if (!memory->Unmap(error_msg)) {
                 return nullptr;
             }
@@ -440,7 +468,7 @@ namespace art {
                               /* base_size  */ 0,
                               /* prot       */ tail_prot,
                               /* reuse      */ false,
-                              /* rdc        */ nullptr);
+                              /* memory     */ nullptr);
         }
 
         size_ = new_end - reinterpret_cast<uint8_t*>(begin_);
@@ -467,24 +495,25 @@ namespace art {
         DCHECK(success) << (error_msg == nullptr) ? "" : *error_msg;
         DCHECK_EQ(base_begin_, memory_->Addr());
 
-        success = memory_->Map(/* addr      */ tail_base_begin,
-                               /* length    */ tail_base_size,
-                               /* offset    */ base_size_,
-                               /* read      */ tail_prot & PROT_READ,
-                               /* write     */ tail_prot & PROT_WRITE,
-                               /* exec      */ tail_prot & PROT_EXEC,
-                               /* low_4gb   */ false,
-                               /* error_msg */ error_msg);
+        auto new_region = new DataSpace(memory_);
+        success = new_region->Map(/* addr      */ tail_base_begin,
+                                  /* length    */ tail_base_size,
+                                  /* offset    */ base_size_,
+                                  /* read      */ tail_prot & PROT_READ,
+                                  /* write     */ tail_prot & PROT_WRITE,
+                                  /* exec      */ tail_prot & PROT_EXEC,
+                                  /* low_4gb   */ false,
+                                  /* error_msg */ error_msg);
         DCHECK(success) << (error_msg == nullptr) ? "" : *error_msg;
 
         return new MemMap(/* name       */ tail_name,
-                          /* begin      */ memory_->UAddr(),
+                          /* begin      */ tail_base_begin,
                           /* size       */ tail_base_size,
-                          /* base_begin */ memory_->Addr(),
+                          /* base_begin */ tail_base_begin,
                           /* base_size  */ tail_base_size,
                           /* prot       */ tail_prot,
                           /* reuse      */ false,
-                          /* rdc        */ memory_);
+                          /* memory     */ new_region);
     }
 
     void MemMap::TryReadable()
@@ -590,7 +619,7 @@ namespace art {
                               /* base_size  */ 0,
                               /* prot       */ prot,
                               /* reuse      */ false,
-                              /* rdc        */ nullptr);
+                              /* memory     */ nullptr);
         }
 
         int page_offset = start % kPageSize;
