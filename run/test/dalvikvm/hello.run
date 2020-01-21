@@ -1,0 +1,152 @@
+#
+# Build
+#
+
+set build_components {
+	core init timer
+	lib/vfs/jitterentropy
+	lib/vfs/pipe
+	lib/gart_libart
+	lib/gart_libcore
+	lib/gart_libopenjdk
+	lib/gart_core
+	dalvikvm
+	test/java_hello_world
+}
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
+build $build_components
+create_boot_directory
+
+#
+# Generate config
+#
+
+install_config {
+<config verbose="yes">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="CAP"/>
+		<service name="RM"/>
+		<service name="PD"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+		<service name="IO_PORT"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<default caps="1000"/>
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>
+
+	<start name="dalvikvm">
+		<resource name="RAM" quantum="700M"/>
+		<config ld_verbose="no">
+			<vfs>
+				<dir name="tmp"> <ram/> </dir>
+				<dir name="appdata">
+					<dir name="dalvik-cache">
+						<ram/>
+					</dir>
+					<dir name="app">
+						<tar name="app.tar"/>
+					</dir>
+					<dir name="framework">
+						<tar name="framework.tar"/>
+					</dir>
+					<dir name="image">
+						<tar name="core-image.tar"/>
+					</dir>
+				</dir>
+				<dir name="dev">
+					<dir name="pipe"><pipe/></dir>
+					<log/>
+					<inline name="rtc">2018-01-01 00:01</inline>
+					<jitterentropy name="random"/>
+				</dir>
+				<dir name="system">
+					<dir name="etc">
+						<inline name="event-log-tags"># dummy</inline>
+						<inline name="public.libraries.txt"></inline>
+						<inline name="llndk.libraries.txt"></inline>
+						<inline name="vndksp.libraries.txt"></inline>
+					</dir>
+					<dir name="usr">
+						<dir name="icu">
+							<tar name="icu.tar"/>
+						</dir>
+					</dir>
+				</dir>
+			</vfs>
+			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" pipe="/dev/pipe" rng="/dev/random" />
+			<start name="/bin/dalvikvm">
+				<arg value="-Xnodex2oat"/>
+				<arg value="-Xnorelocate"/>
+				<arg value="-Ximage:/appdata/image/core.art"/>
+				<arg value="-Xbootclasspath-locations:"/>
+				<arg value="-classpath"/>
+				<arg value="/appdata/app/HelloWorld.jar"/>
+				<arg value="HelloWorld"/>
+				<env name="ANDROID_DATA" value="/appdata"/>
+				<env name="ANDROID_ROOT" value="/system"/>
+			</start>
+		</config>
+	</start>
+</config>}
+
+exec cp bin/gart_libart.lib.so bin/libart.so
+exec unxz -c [genode_dir]/repos/gart/test/data/core-image.tar.xz > bin/core-image.tar
+
+exec tar -cf bin/framework.tar -C bin core-libart.jar core-oj.jar
+exec tar -cf bin/app.tar -C bin HelloWorld.jar
+
+# generic modules
+set boot_modules {
+	core init timer ld.lib.so
+	vfs.lib.so libc.lib.so libm.lib.so stdcxx.lib.so
+	vfs_jitterentropy.lib.so
+	vfs_pipe.lib.so
+	gart_liblog.lib.so
+	libart.so
+	gart_libart.lib.so
+	gart_libbacktrace.lib.so
+	gart_libbase.lib.so
+	gart_libcutils.lib.so
+	gart_libdexfile.lib.so
+	gart_libnativehelper.lib.so
+	gart_libutils.lib.so
+	gart_libvndksupport.lib.so
+	gart_libz.lib.so
+	gart_libziparchive.lib.so
+	gart_libicuuc.lib.so
+	gart_liblz4.lib.so
+	gart_libmetricslogger.lib.so
+	gart_libnativebridge.lib.so
+	gart_libnativeloader.lib.so
+	gart_libsigchain.lib.so
+	gart_libicui18n.lib.so
+	gart_libcore.lib.so
+	gart_libcrypto.lib.so
+	gart_libexpat.lib.so
+	gart_libcore.lib.so
+	gart_libopenjdk.lib.so
+	gart_libopenjdkjvm.lib.so
+	framework.tar
+	icu.tar
+	app.tar
+	core-image.tar
+	dalvikvm
+}
+
+append_platform_drv_boot_modules
+build_boot_image $boot_modules
+
+append qemu_args " -m 1024 -nographic "
+run_genode_until {.*child "dalvikvm" exited with exit value 1} 120 
