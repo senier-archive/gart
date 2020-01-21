@@ -43,6 +43,7 @@ namespace art {
         private:
             Genode::Env *env_;
             void *addr_;
+            size_t offset_;
             Lock *lock_;
 
             bool MapInternal(void* addr,
@@ -126,14 +127,17 @@ namespace art {
 
             DataSpace() : env_(&gart::genode_env())
                         , addr_(nullptr)
+                        , offset_(0)
                         , lock_(nullptr) { }
 
-            DataSpace(DataSpace *memory) : env_(memory->env_)
-                                         , addr_(nullptr)
-                                         , lock_(memory->lock_) {
+            DataSpace(DataSpace *memory,
+                      size_t offset) : env_(memory->env_)
+                                     , addr_(nullptr)
+                                     , lock_(memory->lock_) {
 
                 std::lock_guard<std::mutex> mu(lock_->lock);
                 lock_->count++;
+                offset_ = memory->offset_ + offset;
             }
 
             ~DataSpace() {
@@ -238,7 +242,6 @@ namespace art {
 
             bool Remap(void *addr,
                        size_t length,
-                       size_t offset,
                        bool read,
                        bool write,
                        bool exec,
@@ -253,7 +256,7 @@ namespace art {
                 }
                 bool success = Map(/* addr      */ tmp_addr,
                                    /* length    */ length,
-                                   /* offset    */ offset,
+                                   /* offset    */ offset_,
                                    /* read      */ read,
                                    /* write     */ write,
                                    /* exec      */ exec,
@@ -315,9 +318,9 @@ namespace art {
                                   std::string* error_msg) {
 
         DCHECK_ALIGNED(ptr, kPageSize);
-        DCHECK_ALIGNED(size, kPageSize);
+        size_t page_aligned_size = RoundUp(size, kPageSize);
         uintptr_t begin = reinterpret_cast<uintptr_t>(ptr);
-        uintptr_t end = begin + size;
+        uintptr_t end = begin + page_aligned_size;
 
         MemMap* old_map = nullptr;
 
@@ -360,7 +363,7 @@ namespace art {
                                       /* base_size  */ lsize,
                                       /* prot       */ old_map->GetProtect(),
                                       /* reuse      */ false,
-                                      /* memory     */ new DataSpace(old_map->memory_));
+                                      /* memory     */ new DataSpace(old_map->memory_, 0));
             DCHECK(left != nullptr);
             left->Map();
         }
@@ -370,10 +373,10 @@ namespace art {
                                  /* begin      */ reinterpret_cast<uint8_t *>(begin),
                                  /* size       */ size,
                                  /* base_begin */ reinterpret_cast<void *>(begin),
-                                 /* base_size  */ size,
+                                 /* base_size  */ page_aligned_size,
                                  /* prot       */ prot,
                                  /* reuse      */ false,
-                                 /* memory     */ new DataSpace(old_map->memory_));
+                                 /* memory     */ new DataSpace(old_map->memory_, lsize));
         DCHECK(map != nullptr);
         map->Map();
 
@@ -387,7 +390,7 @@ namespace art {
                                        /* base_size  */ rsize,
                                        /* prot       */ old_map->GetProtect(),
                                        /* reuse      */ false,
-                                       /* memory     */ new DataSpace(old_map->memory_));
+                                       /* memory     */ new DataSpace(old_map->memory_, lsize + page_aligned_size));
             DCHECK(right != nullptr);
             right->Map();
         }
@@ -499,7 +502,7 @@ namespace art {
             CHECK(expected_ptr != nullptr);
             return SplitExisting(/* name      */ name,
                                  /* ptr       */ expected_ptr,
-                                 /* size      */ page_aligned_byte_count,
+                                 /* size      */ byte_count,
                                  /* prot      */ prot,
                                  /* error_msg */ error_msg);
         }
@@ -610,7 +613,7 @@ namespace art {
         DCHECK(success) << (error_msg == nullptr) ? "" : *error_msg;
         DCHECK_EQ(base_begin_, memory_->Addr());
 
-        auto new_region = new DataSpace(memory_);
+        auto new_region = new DataSpace(memory_, 0);
         success = new_region->Map(/* addr      */ tail_base_begin,
                                   /* length    */ tail_base_size,
                                   /* offset    */ base_size_,
@@ -623,7 +626,7 @@ namespace art {
 
         return new MemMap(/* name       */ tail_name,
                           /* begin      */ tail_base_begin,
-                          /* size       */ tail_base_size,
+                          /* size       */ tail_size,
                           /* base_begin */ tail_base_begin,
                           /* base_size  */ tail_base_size,
                           /* prot       */ tail_prot,
@@ -678,10 +681,13 @@ namespace art {
             return true;
         }
 
+        if (prot == prot_) {
+            return true;
+        }
+
         std::string tmp_error;
         bool success = memory_->Remap (/* addr      */ nullptr,
                                        /* length    */ base_size_,
-                                       /* offset    */ 0, // FIXME: maintain offset!
                                        /* read      */ prot_ & PROT_READ,
                                        /* write     */ prot_ & PROT_WRITE,
                                        /* exec      */ prot_ & PROT_EXEC,
@@ -705,7 +711,6 @@ namespace art {
         std::string tmp_error;
         bool success = memory_->Remap (/* addr      */ nullptr,
                                        /* length    */ new_base_size,
-                                       /* offset    */ 0, // FIXME: maintain offset!
                                        /* read      */ prot_ & PROT_READ,
                                        /* write     */ prot_ & PROT_WRITE,
                                        /* exec      */ prot_ & PROT_EXEC,
@@ -721,7 +726,6 @@ namespace art {
         std::string tmp_error;
         bool success = memory_->Remap (/* addr      */ base_begin_,
                                        /* length    */ base_size_,
-                                       /* offset    */ 0, // FIXME: maintain offset!
                                        /* read      */ prot_ & PROT_READ,
                                        /* write     */ prot_ & PROT_WRITE,
                                        /* exec      */ prot_ & PROT_EXEC,
@@ -741,6 +745,8 @@ namespace art {
                                      const char* filename,
                                      std::string* error_msg)
     {
+        DCHECK_ALIGNED(addr, kPageSize);
+        DCHECK_ALIGNED(start, kPageSize);
         CHECK_NE(0, prot);
         if (byte_count == 0) {
             return new MemMap(/* name       */ filename,
@@ -753,14 +759,9 @@ namespace art {
                               /* memory     */ nullptr);
         }
 
-        int page_offset = start % kPageSize;
-        off_t page_aligned_offset = start - page_offset;
-        size_t page_aligned_byte_count = RoundUp(byte_count + page_offset, kPageSize);
-        uint8_t* page_aligned_expected = (addr == nullptr) ? nullptr : (addr - page_offset);
-
         MemMap* result = MapAnonymous(/* name         */ filename,
-                                      /* expected_ptr */ page_aligned_expected,
-                                      /* byte_count   */ page_aligned_byte_count,
+                                      /* expected_ptr */ addr,
+                                      /* byte_count   */ byte_count,
                                       /* prot         */ prot | PROT_WRITE,
                                       /* low_4gb      */ low_4gb,
                                       /* reuse        */ reuse,
@@ -770,9 +771,11 @@ namespace art {
             return nullptr;
         }
 
-        DCHECK(result->Size() >= byte_count);
+        DCHECK(result->Size() == byte_count);
+        DCHECK(result->BaseSize() >= byte_count);
+        DCHECK_ALIGNED(result->BaseSize(), kPageSize);
 
-        off_t old_offset = lseek(fd, 0, SEEK_SET);
+        off_t old_offset = lseek(fd, start, SEEK_SET);
         size_t offset = 0;
 
         while (offset < byte_count)
@@ -838,7 +841,6 @@ namespace art {
         std::string tmp_error;
         bool success = memory_->Remap (/* addr      */ base_begin_,
                                        /* length    */ base_size_,
-                                       /* offset    */ 0, // FIXME: maintain offset!
                                        /* read      */ prot_ & PROT_READ,
                                        /* write     */ prot_ & PROT_WRITE,
                                        /* exec      */ prot_ & PROT_EXEC,
