@@ -110,14 +110,14 @@ append config {
 			</vfs>
 			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" pipe="/dev/pipe" rng="/dev/random" />
 			<start name="/bin/libart_test">
-				<arg value="--gtest_filter=-RegTypeOOMTest.ClassJoinOOM:ThreadLifecycleCallbackRuntimeCallbacksTest.ThreadLifecycleCallbackJava:ClassLoadCallbackRuntimeCallbacksTest.ClassLoadCallback:RuntimeSigQuitCallbackRuntimeCallbacksTest.SigQuit:OatFileTest.*:OatFileAssistantTest.*:OatFileAssistantNoDex2OatTest.*:MonitorTest.*:ObjectTest.StaticFieldFromCode:ObjectTest.DescriptorCompare:DexCacheTest.LinearAlloc:DexCacheMethodHandlesTest.TestResolvedMethodTypes:JavaVmExtTest.AttachCurrentThread_SmallStack:UnstartedRuntimeTest.IsAnonymousClass:SystemWeakTest.*:LargeObjectSpaceTest.RaceTest:DexoptTest.ValidateOatFile:ImageSpaceDex2oatTest.Test:ImageSpacePatchoatTest.Test:HeapTest.GarbageCollectClassLinkerInit:HeapTest.DumpGCPerformanceOnShutdown:ZygoteHeapTest.PreZygoteFork:ExecUtilsTest.*:ClassLoaderContextTest.CreateClassLoaderWithComplexChain:ClassLinkerTest.LibCore:StubTest.*"/>
+				<arg value="--gtest_filter=-RegTypeOOMTest.ClassJoinOOM:ThreadLifecycleCallbackRuntimeCallbacksTest.ThreadLifecycleCallbackJava:RuntimeSigQuitCallbackRuntimeCallbacksTest.SigQuit:OatFileTest.*:OatFileAssistantTest.*:OatFileAssistantNoDex2OatTest.*:MonitorTest.*:ObjectTest.DescriptorCompare:JavaVmExtTest.AttachCurrentThread_SmallStack:SystemWeakTest.*:LargeObjectSpaceTest.RaceTest:DexoptTest.ValidateOatFile:HeapTest.GarbageCollectClassLinkerInit:HeapTest.DumpGCPerformanceOnShutdown:ZygoteHeapTest.PreZygoteFork:ExecUtilsTest.*:ClassLinkerTest.LibCore:StubTest.*"/>
 				<env name="ANDROID_DATA" value="/data"/>
 				<env name="ANDROID_ROOT" value="/system"/>
 			</start>
 		</config>
 	</start>
 </config>}
-#				<arg value="--gtest_filter=*"/>
+
 
 install_config $config
 
