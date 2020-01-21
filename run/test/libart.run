@@ -1,0 +1,205 @@
+#
+# Build
+#
+
+set build_components {
+	core init timer
+	lib/gart_core
+	lib/vfs/jitterentropy
+	lib/vfs/pipe
+	test/libart
+	test/gart_gtest/AllFields
+	test/gart_gtest/ErroneousA
+	test/gart_gtest/ErroneousB
+	test/gart_gtest/ErroneousInit
+	test/gart_gtest/ForClassLoaderA
+	test/gart_gtest/ForClassLoaderB
+	test/gart_gtest/ForClassLoaderC
+	test/gart_gtest/ForClassLoaderD
+	test/gart_gtest/GetMethodSignature
+	test/gart_gtest/HiddenApiSignatures
+	test/gart_gtest/IMTA
+	test/gart_gtest/IMTB
+	test/gart_gtest/Instrumentation
+	test/gart_gtest/Interfaces
+	test/gart_gtest/Lookup
+	test/gart_gtest/Main
+	test/gart_gtest/ManyMethods
+	test/gart_gtest/MethodTypes
+	test/gart_gtest/MultiDex
+	test/gart_gtest/MyClass
+	test/gart_gtest/Nested
+	test/gart_gtest/Packages
+	test/gart_gtest/ProfileTestMultiDex
+	test/gart_gtest/Statics
+	test/gart_gtest/StaticsFromCode
+	test/gart_gtest/Transaction
+	test/gart_gtest/XandY
+}
+
+source ${genode_dir}/repos/base/run/platform_drv.inc
+append_platform_drv_build_components
+build $build_components
+create_boot_directory
+
+#
+# Generate config
+#
+
+set config ""
+append config {
+<config verbose="yes">
+	<parent-provides>
+		<service name="ROM"/>
+		<service name="CAP"/>
+		<service name="RM"/>
+		<service name="PD"/>
+		<service name="CPU"/>
+		<service name="LOG"/>
+		<service name="SIGNAL"/>
+		<service name="IO_PORT"/>
+		<service name="IRQ"/>
+		<service name="IO_MEM"/>
+	</parent-provides>
+	<default-route>
+		<any-service> <parent/> <any-child/> </any-service>
+	</default-route>
+	<default caps="1000"/>
+
+	<start name="timer">
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Timer"/> </provides>
+	</start>
+
+	<start name="libart_test">
+		<resource name="RAM" quantum="1200M"/>
+		<config ld_verbose="no">
+			<vfs>
+				<dir name="tmp"> <ram/> </dir>
+				<dir name="data">
+					<dir name="dalvik-cache">
+						<ram/>
+					</dir>
+				</dir>
+				<dir name="dev">
+					<dir name="pipe"><pipe/></dir>
+					<log/>
+					<inline name="rtc">2018-01-01 00:01</inline>
+					<jitterentropy name="random"/>
+				</dir>
+				<dir name="system">
+					<dir name="framework">
+						<tar name="framework.tar"/>
+					</dir>
+					<dir name="etc">
+						<inline name="public.libraries.txt"></inline>
+						<inline name="llndk.libraries.txt"></inline>
+						<inline name="vndksp.libraries.txt"></inline>
+						<inline name="public.libraries.txt"></inline>
+						<inline name="event-log-tags"># dummy</inline>
+					</dir>
+					<dir name="usr">
+						<dir name="icu">
+							<tar name="icu.tar"/>
+						</dir>
+					</dir>
+				</dir>
+				<dir name="test">
+					<tar name="testdata.tar"/>
+				</dir>
+			</vfs>
+			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" pipe="/dev/pipe" rng="/dev/random" />
+			<start name="/bin/libart_test">
+				<arg value="--gtest_filter=-RegTypeOOMTest.ClassJoinOOM:ThreadLifecycleCallbackRuntimeCallbacksTest.ThreadLifecycleCallbackJava:ClassLoadCallbackRuntimeCallbacksTest.ClassLoadCallback:RuntimeSigQuitCallbackRuntimeCallbacksTest.SigQuit:OatFileTest.*:OatFileAssistantTest.*:OatFileAssistantNoDex2OatTest.*:MonitorTest.*:ObjectTest.StaticFieldFromCode:ObjectTest.DescriptorCompare:DexCacheTest.LinearAlloc:DexCacheMethodHandlesTest.TestResolvedMethodTypes:JavaVmExtTest.AttachCurrentThread_SmallStack:UnstartedRuntimeTest.IsAnonymousClass:SystemWeakTest.*:LargeObjectSpaceTest.RaceTest:DexoptTest.ValidateOatFile:ImageSpaceDex2oatTest.Test:ImageSpacePatchoatTest.Test:HeapTest.GarbageCollectClassLinkerInit:HeapTest.DumpGCPerformanceOnShutdown:ZygoteHeapTest.PreZygoteFork:ExecUtilsTest.*:ClassLoaderContextTest.CreateClassLoaderWithComplexChain:ClassLinkerTest.LibCore:StubTest.*"/>
+				<env name="ANDROID_DATA" value="/data"/>
+				<env name="ANDROID_ROOT" value="/system"/>
+			</start>
+		</config>
+	</start>
+</config>}
+#				<arg value="--gtest_filter=*"/>
+
+install_config $config
+
+#
+# Boot image
+#
+
+exec tar --transform s/.jar/-testdex.jar/ -cf bin/framework.tar -C bin core-libart.jar core-oj.jar
+
+exec tar -cf bin/testdata.tar -C bin \
+	art-gtest-AllFields.jar \
+	art-gtest-ErroneousA.jar \
+	art-gtest-ErroneousB.jar \
+	art-gtest-ErroneousInit.jar \
+	art-gtest-ForClassLoaderA.jar \
+	art-gtest-ForClassLoaderB.jar \
+	art-gtest-ForClassLoaderC.jar \
+	art-gtest-ForClassLoaderD.jar \
+	art-gtest-GetMethodSignature.jar \
+	art-gtest-HiddenApiSignatures.jar \
+	art-gtest-IMTA.jar \
+	art-gtest-IMTB.jar \
+	art-gtest-Instrumentation.jar \
+	art-gtest-Interfaces.jar \
+	art-gtest-Lookup.jar \
+	art-gtest-Main.jar \
+	art-gtest-ManyMethods.jar \
+	art-gtest-MethodTypes.jar \
+	art-gtest-MultiDex.jar \
+	art-gtest-MyClass.jar \
+	art-gtest-Nested.jar \
+	art-gtest-Packages.jar \
+	art-gtest-ProfileTestMultiDex.jar \
+	art-gtest-Statics.jar \
+	art-gtest-StaticsFromCode.jar \
+	art-gtest-Transaction.jar \
+	art-gtest-XandY.jar \
+
+# generic modules
+set boot_modules {
+	core init timer ld.lib.so
+	vfs.lib.so libc.lib.so libm.lib.so stdcxx.lib.so
+	vfs_jitterentropy.lib.so
+	vfs_pipe.lib.so
+	gtest.lib.so gart_liblog.lib.so
+	gart_libart.lib.so
+	gart_libbacktrace.lib.so
+	gart_libbase.lib.so
+	gart_libcutils.lib.so
+	gart_libdexfile.lib.so
+	gart_libnativehelper.lib.so
+	gart_libutils.lib.so
+	gart_libvndksupport.lib.so
+	gart_libz.lib.so
+	gart_libziparchive.lib.so
+	gart_libicuuc.lib.so
+	gart_liblz4.lib.so
+	gart_libmetricslogger.lib.so
+	gart_libnativebridge.lib.so
+	gart_libnativeloader.lib.so
+	gart_libsigchain.lib.so
+	gart_liblzma.lib.so
+	gart_libvixl-arm.lib.so
+	gart_libvixl-arm64.lib.so
+	gart_libart-disassembler.lib.so
+	gart_libart.lib.so
+	gart_libicui18n.lib.so
+	gart_libcore.lib.so
+	gart_libcrypto.lib.so
+	gart_libexpat.lib.so
+	gart_libcore.lib.so
+	gart_libopenjdk.lib.so
+	gart_libopenjdkjvm.lib.so
+	gart_libart-compiler.lib.so
+	libart_test
+	framework.tar
+	testdata.tar
+	icu.tar
+}
+
+append_platform_drv_boot_modules
+build_boot_image $boot_modules
+
+append qemu_args " -m 1500 -nographic "
+run_genode_until {.*child "libart_test" exited with exit value 0} 1200
