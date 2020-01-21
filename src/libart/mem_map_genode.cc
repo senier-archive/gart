@@ -262,7 +262,7 @@ namespace art {
                                    /* exec      */ exec,
                                    /* low_4gb   */ false,
                                    /* error_msg */ error_msg);
-                DCHECK(success) << *error_msg;
+                DCHECK(success) << ": When mapping " << tmp_addr << ": " << *error_msg;
                 DCHECK_EQ(Addr(), tmp_addr) << "remapping at wrong address";
                 return true;
             }
@@ -330,8 +330,8 @@ namespace art {
                  it != gMaps->end();
                  ++it)
             {
-                if (begin >= reinterpret_cast<uintptr_t>(it->second->Begin())
-                    && end <= reinterpret_cast<uintptr_t>(it->second->End()))
+                if (begin >= reinterpret_cast<uintptr_t>(it->second->BaseBegin())
+                    && end <= reinterpret_cast<uintptr_t>(it->second->BaseEnd()))
                 {
                     gMaps->erase(it);
                     old_map = it->second;
@@ -354,12 +354,13 @@ namespace art {
         };
 
         // Left overlapping region
-        uintptr_t lsize = begin - reinterpret_cast<uintptr_t>(old_map->Begin());
+        uintptr_t lsize = begin - reinterpret_cast<uintptr_t>(old_map->BaseBegin());
+        DCHECK_ALIGNED(lsize, kPageSize);
         if (lsize > 0) {
-            MemMap *left = new MemMap(/* name       */ old_map->GetName() + " (lsplit)",
-                                      /* begin      */ old_map->Begin(),
+            MemMap *left = new MemMap(/* name       */ old_map->GetName() + "/L",
+                                      /* begin      */ reinterpret_cast<uint8_t *>(old_map->BaseBegin()),
                                       /* size       */ lsize,
-                                      /* base_begin */ old_map->Begin(),
+                                      /* base_begin */ old_map->BaseBegin(),
                                       /* base_size  */ lsize,
                                       /* prot       */ old_map->GetProtect(),
                                       /* reuse      */ false,
@@ -381,9 +382,10 @@ namespace art {
         map->Map();
 
         // Right overlapping region
-        uintptr_t rsize = reinterpret_cast<uintptr_t>(old_map->End()) - end;
+        uintptr_t rsize = reinterpret_cast<uintptr_t>(old_map->BaseEnd()) - end;
+        DCHECK_ALIGNED(rsize, kPageSize);
         if (rsize > 0) {
-            MemMap *right = new MemMap(/* name       */ old_map->GetName() + " (split/r)",
+            MemMap *right = new MemMap(/* name       */ old_map->GetName() + "/R",
                                        /* begin      */ reinterpret_cast<uint8_t *>(end),
                                        /* size       */ rsize,
                                        /* base_begin */ reinterpret_cast<void *>(end),
@@ -745,6 +747,7 @@ namespace art {
                                      const char* filename,
                                      std::string* error_msg)
     {
+        VLOG(heap) << __FUNCTION__ << " @" << (void *)addr << " size=" << byte_count << " start=" << start << " prot=" << prot << " [" << filename << "]";
         DCHECK_ALIGNED(addr, kPageSize);
         DCHECK_ALIGNED(start, kPageSize);
         CHECK_NE(0, prot);
