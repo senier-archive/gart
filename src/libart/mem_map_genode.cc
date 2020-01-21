@@ -749,7 +749,6 @@ namespace art {
     {
         VLOG(heap) << __FUNCTION__ << " @" << (void *)addr << " size=" << byte_count << " start=" << start << " prot=" << prot << " [" << filename << "]";
         DCHECK_ALIGNED(addr, kPageSize);
-        DCHECK_ALIGNED(start, kPageSize);
         CHECK_NE(0, prot);
         if (byte_count == 0) {
             return new MemMap(/* name       */ filename,
