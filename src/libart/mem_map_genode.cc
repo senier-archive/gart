@@ -28,6 +28,10 @@ namespace art {
 
     using android::base::StringPrintf;
 
+#if USE_ART_LOW_4G_ALLOCATOR
+    uintptr_t MemMap::next_mem_pos_ = 64 * KB;
+#endif
+
     class Lock {
         public:
             Genode::Ram_dataspace_capability *rdc;

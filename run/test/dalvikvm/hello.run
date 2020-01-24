@@ -47,7 +47,7 @@ install_config {
 	</start>
 
 	<start name="dalvikvm">
-		<resource name="RAM" quantum="700M"/>
+		<resource name="RAM" quantum="367M"/>
 		<config ld_verbose="no">
 			<vfs>
 				<dir name="tmp"> <ram/> </dir>
@@ -85,12 +85,11 @@ install_config {
 					</dir>
 				</dir>
 			</vfs>
-			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" pipe="/dev/pipe" rng="/dev/random" />
+			<libc stdin="/dev/log" stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" pipe="/dev/pipe" rng="/dev/random" />
 			<start name="/bin/dalvikvm">
 				<arg value="-Xnodex2oat"/>
 				<arg value="-Xnorelocate"/>
-				<arg value="-Ximage:/appdata/image/core.art"/>
-				<arg value="-Xbootclasspath-locations:"/>
+				<arg value="-Ximage:/appdata/image/boot.art"/>
 				<arg value="-classpath"/>
 				<arg value="/appdata/app/HelloWorld.jar"/>
 				<arg value="HelloWorld"/>
@@ -102,7 +101,23 @@ install_config {
 </config>}
 
 exec cp bin/gart_libart.lib.so bin/libart.so
-exec unxz -c [genode_dir]/repos/gart/test/data/core-image.tar.xz > bin/core-image.tar
+
+if [have_spec arm_64] {
+	set arch arm64
+} else {
+	if [have_spec arm] {
+		set arch arm
+	} else {
+		if [have_spec x86_64] {
+			set arch x86_64
+		} else {
+			puts "Unsupported architecture"
+			exit -1
+		}
+	}
+}
+
+exec unxz -c [genode_dir]/repos/gart/test/data/core-image-$arch.tar.xz > bin/core-image.tar
 
 exec tar -cf bin/framework.tar -C bin core-libart.jar core-oj.jar
 exec tar -cf bin/app.tar -C bin HelloWorld.jar
@@ -149,4 +164,4 @@ append_platform_drv_boot_modules
 build_boot_image $boot_modules
 
 append qemu_args " -m 1024 -nographic "
-run_genode_until {.*child "dalvikvm" exited with exit value 1} 120 
+run_genode_until {.*child "dalvikvm" exited with exit value 1} 120
