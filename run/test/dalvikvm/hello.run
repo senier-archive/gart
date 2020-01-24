@@ -23,6 +23,24 @@ create_boot_directory
 # Generate config
 #
 
+if [have_spec arm_64] {
+	set arch arm64
+	set image boot.art
+} else {
+	if [have_spec arm] {
+		set arch arm
+		set image boot.art
+	} else {
+		if [have_spec x86_64] {
+			set arch x86_64
+			set image core.art
+		} else {
+			puts "Unsupported architecture"
+			exit -1
+		}
+	}
+}
+
 install_config {
 <config verbose="yes">
 	<parent-provides>
@@ -89,7 +107,7 @@ install_config {
 			<start name="/bin/dalvikvm">
 				<arg value="-Xnodex2oat"/>
 				<arg value="-Xnorelocate"/>
-				<arg value="-Ximage:/appdata/image/boot.art"/>
+				<arg value="-Ximage:/appdata/image/} $image {"/>
 				<arg value="-classpath"/>
 				<arg value="/appdata/app/HelloWorld.jar"/>
 				<arg value="HelloWorld"/>
@@ -101,21 +119,6 @@ install_config {
 </config>}
 
 exec cp bin/gart_libart.lib.so bin/libart.so
-
-if [have_spec arm_64] {
-	set arch arm64
-} else {
-	if [have_spec arm] {
-		set arch arm
-	} else {
-		if [have_spec x86_64] {
-			set arch x86_64
-		} else {
-			puts "Unsupported architecture"
-			exit -1
-		}
-	}
-}
 
 exec unxz -c [genode_dir]/repos/gart/test/data/core-image-$arch.tar.xz > bin/core-image.tar
 
