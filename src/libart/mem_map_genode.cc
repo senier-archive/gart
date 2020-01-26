@@ -227,13 +227,6 @@ namespace art {
                                   /* exec      */ exec,
                                   /* error_msg */ error_msg);
                 }
-
-                if (reinterpret_cast<uint64_t>(addr) > 0xfffff000ULL) {
-                    if (error_msg != nullptr) {
-                        *error_msg = "Non-lowmem fixed addres and low_4gb set";
-                    }
-                    return false;
-                }
 #endif
                 return MapInternal(/* addr      */ addr,
                                    /* length    */ length,
