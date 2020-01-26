@@ -58,7 +58,7 @@ append config {
 	</start>
 
 	<start name="libart-compiler_test">
-		<resource name="RAM" quantum="700M"/>
+		<resource name="RAM" quantum="450M"/>
 		<config ld_verbose="no">
 			<vfs>
 				<dir name="tmp"> <ram/> </dir>
