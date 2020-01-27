@@ -38,7 +38,7 @@ pid_t pthread_gettid_np(pthread_t thread)
         }
     }
 
-    for (pid_t p = 0; p < TIDDB_SIZE; p++) {
+    for (pid_t p = 1; p < TIDDB_SIZE; p++) {
         if (tiddb[p] == nullptr) {
             tiddb[p] = thread;
             return p;
