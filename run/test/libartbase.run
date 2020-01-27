@@ -67,7 +67,7 @@ install_config {
 					</dir>
 				</dir>
 			</vfs>
-			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" rng="/dev/random" pipe="/dev/pipe" />
+			<libc stdin="/dev/log" stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" rng="/dev/random" pipe="/dev/pipe" />
 			<start name="/bin/libartbase_test">
 				<arg value="--gtest_filter=-FdFileTest.EraseWithPathUnlinks:ScopedFlockTest.TestLocking"/>
 				<env name="ANDROID_DATA" value="/data"/>

@@ -81,6 +81,7 @@ append config {
 						<inline name="public.libraries.txt"></inline>
 						<inline name="llndk.libraries.txt"></inline>
 						<inline name="vndksp.libraries.txt"></inline>
+						<inline name="event-log-tags"># dummy</inline>
 					</dir>
 					<dir name="usr">
 						<dir name="icu">
@@ -92,7 +93,7 @@ append config {
 					<tar name="testdata.tar"/>
 				</dir>
 			</vfs>
-			<libc stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" pipe="/dev/pipe" rng="/dev/random" />
+			<libc stdin="/dev/log" stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" pipe="/dev/pipe" rng="/dev/random" />
 			<start name="/bin/libart-compiler_test">
 				<arg value="} [test_args] {"/>
 				<env name="ANDROID_DATA" value="/data"/>
@@ -389,4 +390,4 @@ append_platform_drv_boot_modules
 build_boot_image $boot_modules
 
 append qemu_args " -m 512 -nographic "
-run_genode_until {.*child "libart-compiler_test" exited with exit value 0} 120 
+run_genode_until {.*child "libart-compiler_test" exited with exit value 0} 120000
