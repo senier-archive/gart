@@ -26,3 +26,6 @@ CC_OPT += -D__SIGRTMIN=SIGRTMIN
 CC_OPT += -D_ALLBSD_SOURCE -DGART_BSD_COMPAT
 
 CC_OPT_io_util_md = -UGART_BSD_COMPAT -Dstat64=stat
+
+CC_OPT_NativeThread += -Wno-int-to-pointer-cast
+CC_OPT_NativeThread += -Wno-pointer-to-int-cast
