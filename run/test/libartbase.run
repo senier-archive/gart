@@ -19,6 +19,9 @@ create_boot_directory
 # Generate config
 #
 
+proc test_args {} { return "$::env(TEST_ARGS)" }
+proc timeout {} { return "$::env(TIMEOUT)" }
+
 install_config {
 <config verbose="yes">
 	<parent-provides>
@@ -69,7 +72,7 @@ install_config {
 			</vfs>
 			<libc stdin="/dev/log" stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" rng="/dev/random" pipe="/dev/pipe" />
 			<start name="/bin/libartbase_test">
-				<arg value="--gtest_filter=-FdFileTest.EraseWithPathUnlinks:ScopedFlockTest.TestLocking"/>
+				<arg value="} [test_args] {"/>
 				<env name="ANDROID_DATA" value="/data"/>
 				<env name="ANDROID_ROOT" value="/system"/>
 			</start>
@@ -120,4 +123,4 @@ append_platform_drv_boot_modules
 build_boot_image $boot_modules
 
 append qemu_args " -m 512 -nographic "
-run_genode_until {.*child "libartbase_test" exited with exit value 0} 600
+run_genode_until {.*Global test environment tear-down} [timeout]

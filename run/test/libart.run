@@ -46,6 +46,9 @@ create_boot_directory
 # Generate config
 #
 
+proc test_args {} { return "$::env(TEST_ARGS)" }
+proc timeout {} { return "$::env(TIMEOUT)" }
+
 set config ""
 append config {
 <config verbose="yes">
@@ -64,15 +67,15 @@ append config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<default caps="1000"/>
+	<default caps="500"/>
 
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
 
-	<start name="libart_test">
-		<resource name="RAM" quantum="1200M"/>
+	<start name="libart_test" caps="5000" >
+		<resource name="RAM" quantum="500M"/>
 		<config ld_verbose="no">
 			<vfs>
 				<dir name="tmp"> <ram/> </dir>
@@ -110,7 +113,7 @@ append config {
 			</vfs>
 			<libc stdin="/dev/log" stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" pipe="/dev/pipe" rng="/dev/random" />
 			<start name="/bin/libart_test">
-				<arg value="--gtest_filter=-RegTypeOOMTest.ClassJoinOOM:ThreadLifecycleCallbackRuntimeCallbacksTest.ThreadLifecycleCallbackJava:RuntimeSigQuitCallbackRuntimeCallbacksTest.SigQuit:OatFileTest.*:OatFileAssistantTest.*:OatFileAssistantNoDex2OatTest.*:MonitorTest.*:ObjectTest.DescriptorCompare:JavaVmExtTest.AttachCurrentThread_SmallStack:SystemWeakTest.*:LargeObjectSpaceTest.RaceTest:DexoptTest.ValidateOatFile:HeapTest.GarbageCollectClassLinkerInit:HeapTest.DumpGCPerformanceOnShutdown:ZygoteHeapTest.PreZygoteFork:ExecUtilsTest.*:ClassLinkerTest.LibCore:StubTest.*"/>
+				<arg value="} [test_args] {"/>
 				<env name="ANDROID_DATA" value="/data"/>
 				<env name="ANDROID_ROOT" value="/system"/>
 			</start>
@@ -118,6 +121,7 @@ append config {
 	</start>
 </config>}
 
+#				<arg value="--gtest_filter=-RegTypeOOMTest.ClassJoinOOM:ThreadLifecycleCallbackRuntimeCallbacksTest.ThreadLifecycleCallbackJava:RuntimeSigQuitCallbackRuntimeCallbacksTest.SigQuit:OatFileTest.*:OatFileAssistantTest.*:OatFileAssistantNoDex2OatTest.*:MonitorTest.*:ObjectTest.DescriptorCompare:JavaVmExtTest.AttachCurrentThread_SmallStack:SystemWeakTest.*:LargeObjectSpaceTest.RaceTest:DexoptTest.ValidateOatFile:HeapTest.GarbageCollectClassLinkerInit:HeapTest.DumpGCPerformanceOnShutdown:ZygoteHeapTest.PreZygoteFork:ExecUtilsTest.*:ClassLinkerTest.LibCore:StubTest.*"/>
 
 install_config $config
 
@@ -201,5 +205,5 @@ set boot_modules {
 append_platform_drv_boot_modules
 build_boot_image $boot_modules
 
-append qemu_args " -m 1500 -nographic "
-run_genode_until {.*child "libart_test" exited with exit value 0} 1200
+append qemu_args " -m 1024 -nographic "
+run_genode_until {.*Global test environment tear-down} [timeout]
