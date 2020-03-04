@@ -24,7 +24,7 @@ create_boot_directory
 #
 
 install_config {
-<config verbose="yes">
+<config verbose="no">
 	<parent-provides>
 		<service name="ROM"/>
 		<service name="CAP"/>
@@ -86,12 +86,13 @@ install_config {
 			</vfs>
 			<libc stdin="/dev/log" stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" pipe="/dev/pipe" rng="/dev/random" />
 			<start name="/bin/dalvikvm">
+				<arg value="-Xnoimage-dex2oat"/>
 				<arg value="-Xzygote"/>
 				<arg value="-Xint"/>
 				<arg value="-Xnorelocate"/>
 				<arg value="-Xbootclasspath:/system/framework/core-libart.jar:/system/framework/core-oj.jar"/>
 				<arg value="-classpath"/>
-				<arg value="/appdata/app/HelloWorld.jar"/>
+				<arg value="/data/app/HelloWorld.jar"/>
 				<arg value="HelloWorld"/>
 				<env name="ANDROID_DATA" value="/data"/>
 				<env name="ANDROID_ROOT" value="/system"/>
