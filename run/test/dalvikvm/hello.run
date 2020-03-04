@@ -23,24 +23,6 @@ create_boot_directory
 # Generate config
 #
 
-if [have_spec arm_64] {
-	set arch arm64
-	set image boot.art
-} else {
-	if [have_spec arm] {
-		set arch arm
-		set image boot.art
-	} else {
-		if [have_spec x86_64] {
-			set arch x86_64
-			set image core.art
-		} else {
-			puts "Unsupported architecture"
-			exit -1
-		}
-	}
-}
-
 install_config {
 <config verbose="yes">
 	<parent-provides>
@@ -65,22 +47,18 @@ install_config {
 	</start>
 
 	<start name="dalvikvm">
-		<resource name="RAM" quantum="360M"/>
-		<config ld_verbose="yes">
+		<resource name="RAM" quantum="355M"/>
+		<config ld_verbose="no">
 			<vfs>
 				<dir name="tmp"> <ram/> </dir>
-				<dir name="appdata">
+				<dir name="data">
 					<dir name="dalvik-cache">
-						<ram/>
+						<dir name="arm64">
+							<ram/>
+						</dir>
 					</dir>
 					<dir name="app">
 						<tar name="app.tar"/>
-					</dir>
-					<dir name="framework">
-						<tar name="framework.tar"/>
-					</dir>
-					<dir name="image">
-						<tar name="core-image.tar"/>
 					</dir>
 				</dir>
 				<dir name="dev">
@@ -101,26 +79,29 @@ install_config {
 							<tar name="icu.tar"/>
 						</dir>
 					</dir>
+					<dir name="framework">
+						<tar name="framework.tar"/>
+					</dir>
 				</dir>
 			</vfs>
 			<libc stdin="/dev/log" stdout="/dev/log" stderr="/dev/log" rtc="/dev/rtc" pipe="/dev/pipe" rng="/dev/random" />
 			<start name="/bin/dalvikvm">
-				<arg value="-Xnodex2oat"/>
+				<arg value="-Xzygote"/>
+				<arg value="-Xint"/>
 				<arg value="-Xnorelocate"/>
-				<arg value="-Ximage:/appdata/image/} $image {"/>
+				<arg value="-Xbootclasspath:/system/framework/core-libart.jar:/system/framework/core-oj.jar"/>
 				<arg value="-classpath"/>
 				<arg value="/appdata/app/HelloWorld.jar"/>
 				<arg value="HelloWorld"/>
-				<env name="ANDROID_DATA" value="/appdata"/>
+				<env name="ANDROID_DATA" value="/data"/>
 				<env name="ANDROID_ROOT" value="/system"/>
 			</start>
 		</config>
 	</start>
 </config>}
 
+# FIXME: find place where libart.so is loaded explicitely by runtime
 exec cp bin/gart_libart.lib.so bin/libart.so
-
-exec unxz -c [genode_dir]/repos/gart/test/data/core-image-$arch.tar.xz > bin/core-image.tar
 
 exec tar -cf bin/framework.tar -C bin core-libart.jar core-oj.jar
 exec tar -cf bin/app.tar -C bin HelloWorld.jar
@@ -136,30 +117,32 @@ set boot_modules {
 	gart_libart.lib.so
 	gart_libbacktrace.lib.so
 	gart_libbase.lib.so
+	gart_libcore.lib.so
+	gart_libcore.lib.so
+	gart_libcrypto.lib.so
 	gart_libcutils.lib.so
 	gart_libdexfile.lib.so
+	gart_libexpat.lib.so
+	gart_libicui18n.lib.so
+	gart_libicuuc.lib.so
+	gart_liblz4.lib.so
+	gart_liblzma.lib.so
+	gart_libmetricslogger.lib.so
+	gart_libnativebridge.lib.so
 	gart_libnativehelper.lib.so
+	gart_libnativeloader.lib.so
+	gart_libopenjdk.lib.so
+	gart_libopenjdkjvm.lib.so
+	gart_libsigchain.lib.so
 	gart_libutils.lib.so
+	gart_libvixl-arm.lib.so
+	gart_libvixl-arm64.lib.so
 	gart_libvndksupport.lib.so
 	gart_libz.lib.so
 	gart_libziparchive.lib.so
-	gart_libicuuc.lib.so
-	gart_liblz4.lib.so
-	gart_libmetricslogger.lib.so
-	gart_libnativebridge.lib.so
-	gart_libnativeloader.lib.so
-	gart_libsigchain.lib.so
-	gart_libicui18n.lib.so
-	gart_libcore.lib.so
-	gart_libcrypto.lib.so
-	gart_libexpat.lib.so
-	gart_libcore.lib.so
-	gart_libopenjdk.lib.so
-	gart_libopenjdkjvm.lib.so
 	framework.tar
 	icu.tar
 	app.tar
-	core-image.tar
 	dalvikvm
 }
 
