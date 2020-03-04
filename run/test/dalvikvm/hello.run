@@ -130,7 +130,6 @@ set boot_modules {
 	gart_libicui18n.lib.so
 	gart_libicuuc.lib.so
 	gart_liblz4.lib.so
-	gart_liblzma.lib.so
 	gart_libmetricslogger.lib.so
 	gart_libnativebridge.lib.so
 	gart_libnativehelper.lib.so
@@ -139,8 +138,6 @@ set boot_modules {
 	gart_libopenjdkjvm.lib.so
 	gart_libsigchain.lib.so
 	gart_libutils.lib.so
-	gart_libvixl-arm.lib.so
-	gart_libvixl-arm64.lib.so
 	gart_libvndksupport.lib.so
 	gart_libz.lib.so
 	gart_libziparchive.lib.so
