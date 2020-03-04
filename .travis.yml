@@ -45,7 +45,7 @@ env:
           "
         - TESTS_LIBLZ4="run/test/liblz4"
         - TESTS_GART="run/test/libartbase test/libart-compiler"
-        - TESTS_JAVA="test/dummy_java_libs"
+        - TESTS_JAVA="test/dummy_java_libs runt/test/dalvikvm/hello"
 
         - LINUX_X86_64_LINUX="x86_64 linux linux"
         - NOVA_X86_64_PC="x86_64 nova pc"

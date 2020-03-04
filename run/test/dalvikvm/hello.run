@@ -56,6 +56,9 @@ install_config {
 						<dir name="arm64">
 							<ram/>
 						</dir>
+						<dir name="x86_64">
+							<ram/>
+						</dir>
 					</dir>
 					<dir name="app">
 						<tar name="app.tar"/>
@@ -151,4 +154,4 @@ append_platform_drv_boot_modules
 build_boot_image $boot_modules
 
 append qemu_args " -m 1024 -nographic "
-run_genode_until {.*child "dalvikvm" exited with exit value 1} 120
+run_genode_until {.*child "dalvikvm" exited with exit value 0} 120
