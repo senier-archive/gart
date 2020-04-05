@@ -12,7 +12,7 @@ GENSRCS_TOOL = $(call select_from_ports,gart_art)/art/tools/generate_operator_ou
 VPATH += $(GENSRCS_DIR)
 SRC_CC += $(GENSRCS_OUTPUT)
 
-DUMMY := $(shelL MKDir -p $(GENSRCS_DIR))
+DUMMY := $(shell mkdir -p $(GENSRCS_DIR))
 DUMMY := $(shell $(GENSRCS_TOOL) $(GENSRCS_BASEDIR)/$(GENSRCS_SUBDIR) $(GENSRCS_HEADERS) > $(GENSRCS_DIR)/$(GENSRCS_OUTPUT).tmp \
             && diff -q $(GENSRCS_DIR)/$(GENSRCS_OUTPUT).tmp $(GENSRCS_DIR)/$(GENSRCS_OUTPUT) 2> /dev/null \
                 || mv $(GENSRCS_DIR)/$(GENSRCS_OUTPUT).tmp $(GENSRCS_DIR)/$(GENSRCS_OUTPUT) 2>/dev/null)

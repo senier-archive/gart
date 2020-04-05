@@ -67,6 +67,7 @@ ifneq ($(GENSRCS_SECTION),)
 include $(call select_from_repositories,lib/mk/art-operators.inc)
 endif
 
+SRC_AIDL += $(filter-out $(ANDROID_EXCLUDE_AIDL),$(filter %.aidl,$($(ANDROID_NAME)_SRCS)))
 SRC_C  += $(filter-out $(ANDROID_EXCLUDE_C),$(filter %.c,$($(ANDROID_NAME)_SRCS)))
 SRC_CC += $(filter-out $(ANDROID_EXCLUDE_CC),$(filter %.cpp %.cc,$($(ANDROID_NAME)_SRCS)))
 SRC_S  += $(filter-out $(ANDROID_EXCLUDE_S),$(filter %.S %.s,$($(ANDROID_NAME)_SRCS)))
@@ -78,14 +79,19 @@ CC_OPT += -Werror -D__GENODE__ -D__ANDROID__
 CC_OPT += -Wno-unused-function -Wno-unused-variable -Wno-unused-parameter
 CC_CXX_WARN_STRICT =
 
+%.cc: %.aidl
+	@mkdir -p $(ANDROID_OUTPUT_DIR)/include $(ANDROID_OUTPUT_DIR)/$(dir $*)
+	@$(ECHO) "   AIDL-CPP  $*"
+	$(VERBOSE)aidl-cpp -I$(ANDROID_BASEDIR) $< $(ANDROID_OUTPUT_DIR)/include $(ANDROID_OUTPUT_DIR)/$@
+
 INCLUDE_DIRS = \
 	$($(ANDROID_NAME)_EXPORT_INCLUDE_DIRS) \
 	$($(ANDROID_NAME)_LOCAL_INCLUDE_DIRS) \
 	$($(ANDROID_NAME)_INCLUDE_DIRS)
 
-INC_DIR := $(REP_DIR)/include/gart $(INC_DIR) $(addprefix $(ANDROID_BASEDIR)/,$(sort $(INCLUDE_DIRS)))
+INC_DIR := $(REP_DIR)/include/gart $(INC_DIR) $(addprefix $(ANDROID_BASEDIR)/,$(sort $(INCLUDE_DIRS))) $(ANDROID_OUTPUT_DIR)/include
 
-vpath % $(addprefix $(ANDROID_BASEDIR)/,$(ANDROID_SOURCES))
+VPATH += $(addprefix $(ANDROID_BASEDIR)/,$(ANDROID_SOURCES)) $(ANDROID_OUTPUT_DIR)
 
 # Include these libraries by default
 ANDROID_LIBS += \
