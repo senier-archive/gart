@@ -1,0 +1,8 @@
+LICENSE   := Apache_2.0
+VERSION   := git
+DOWNLOADS := native.git
+
+URL(native) := https://github.com/Componolit/android_platform_frameworks_native.git
+DIR(native) := native
+REV(native) := android-9.0.0_r45
+DEPTH(native) := 1
